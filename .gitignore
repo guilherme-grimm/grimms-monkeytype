@@ -4,6 +4,10 @@ dist
 dist-ssr
 *.local
 .env
+.env.local
+data
+*.db
+*.db-journal
 .nitro
 .tanstack
 .wrangler
@@ -12,3 +16,4 @@ dist-ssr
 __unconfig*
 todos.json
 HANDOFF.md
+ROADMAP.md

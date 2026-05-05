@@ -22,7 +22,8 @@ describe('scoring helpers', () => {
         snippetsCompleted: 4,
       }),
     ).toEqual({
-      score: 300,
+      score: 130,
+      wpm: 60,
       cpm: 300,
       accuracy: 90.9,
       correctChars: 150,

@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778010562493,
+      "tag": "0000_fair_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778018275891,
+      "tag": "0001_open_moondragon",
+      "breakpoints": true
+    }
+  ]
+}

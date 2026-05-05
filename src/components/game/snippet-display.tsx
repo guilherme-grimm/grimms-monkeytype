@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
+import { getWordRegion, type WordRegion } from '#/lib/game/word-regions'
 import type { NormalizedSnippet } from '#/lib/game/types'
 
 type SnippetDisplayProps = {
@@ -7,8 +8,6 @@ type SnippetDisplayProps = {
   upcomingSnippet: NormalizedSnippet
   typedValue: string
 }
-
-type WordRegion = 'past' | 'previous' | 'current' | 'next' | 'future'
 
 function renderIgnoredToken(tokenValue: string, key: string) {
   if (tokenValue === '\r') {
@@ -28,87 +27,6 @@ function renderIgnoredToken(tokenValue: string, key: string) {
   }
 
   return <span key={key}>{tokenValue}</span>
-}
-
-function getSpaceGlyph(isCurrent: boolean, isTyped: boolean) {
-  return isCurrent || isTyped ? '·' : '·'
-}
-
-function getWordRanges(normalized: string) {
-  const ranges: Array<{ start: number; end: number }> = []
-  let index = 0
-
-  while (index < normalized.length) {
-    while (index < normalized.length && normalized[index] === ' ') {
-      index += 1
-    }
-
-    if (index >= normalized.length) {
-      break
-    }
-
-    const start = index
-
-    while (index < normalized.length && normalized[index] !== ' ') {
-      index += 1
-    }
-
-    ranges.push({ start, end: index })
-  }
-
-  return ranges
-}
-
-function getCurrentWordIndex(ranges: Array<{ start: number; end: number }>, activeIndex: number) {
-  if (ranges.length === 0) {
-    return -1
-  }
-
-  const containingIndex = ranges.findIndex((range) => activeIndex >= range.start && activeIndex < range.end)
-
-  if (containingIndex !== -1) {
-    return containingIndex
-  }
-
-  const nextIndex = ranges.findIndex((range) => range.start > activeIndex)
-  if (nextIndex !== -1) {
-    return nextIndex
-  }
-
-  return ranges.length - 1
-}
-
-function getWordRegion(normalized: string, scoringIndex: number, activeIndex: number): WordRegion {
-  const ranges = getWordRanges(normalized)
-
-  if (ranges.length === 0) {
-    return 'future'
-  }
-
-  const wordIndex = ranges.findIndex((range) => scoringIndex >= range.start && scoringIndex < range.end)
-  if (wordIndex === -1) {
-    return scoringIndex < activeIndex ? 'past' : 'future'
-  }
-
-  const currentWordIndex = getCurrentWordIndex(ranges, activeIndex)
-
-  if (wordIndex < currentWordIndex - 1) {
-    return 'past'
-  }
-
-  if (wordIndex === currentWordIndex - 1) {
-    return 'previous'
-  }
-
-  if (wordIndex === currentWordIndex) {
-    return 'current'
-  }
-
-  if (wordIndex === currentWordIndex + 1) {
-    return 'next'
-  }
-
-  return 'future'
 }
 
 function getWordRegionClass(region: WordRegion) {
@@ -291,7 +209,7 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
                   characterRefs.current[scoringIndex] = element
                 }}
               >
-                {isSpace ? getSpaceGlyph(isCurrent, typedChar !== undefined) : token.value}
+                {isSpace ? '·' : token.value}
               </span>
             </span>
           )

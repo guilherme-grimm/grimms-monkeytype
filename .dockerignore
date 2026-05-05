@@ -1,5 +1,8 @@
 node_modules
 dist
+data
+*.db
+*.db-journal
 .git
 .gitignore
 .DS_Store

@@ -1,7 +1,12 @@
 import { statSync } from 'node:fs'
 import { join, normalize } from 'node:path'
 
+import { migrate } from 'drizzle-orm/libsql/migrator'
+
+import { db } from './src/server/db'
 import serverEntry from './dist/server/server.js'
+
+await migrate(db, { migrationsFolder: './drizzle' })
 
 const port = Number(process.env.PORT ?? 3000)
 const clientRoot = join(import.meta.dir, 'dist', 'client')

@@ -28,9 +28,13 @@ export function calculateRoundMetrics(input: {
   const totalTypedChars = input.correctChars + input.incorrectChars
   const cpm = input.correctChars / elapsedMinutes
   const accuracy = totalTypedChars === 0 ? 100 : (input.correctChars / totalTypedChars) * 100
+  const wpm = cpm / 5
+  const normalizedAccuracy = accuracy / 100
+  const score = 25 + (wpm * (1 + normalizedAccuracy)) / (2 - normalizedAccuracy)
 
   return {
-    score: Math.round(cpm),
+    score: Math.round(score),
+    wpm: Math.round(wpm * 10) / 10,
     cpm: Math.round(cpm),
     accuracy: Math.round(accuracy * 10) / 10,
     correctChars: input.correctChars,

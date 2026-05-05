@@ -22,6 +22,7 @@ export type RoundStatus = 'idle' | 'active' | 'finished'
 
 export type RoundMetrics = {
   score: number
+  wpm: number
   cpm: number
   accuracy: number
   correctChars: number
