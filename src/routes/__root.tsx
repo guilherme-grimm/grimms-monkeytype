@@ -41,6 +41,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          defer
+          src="https://umami.grimm0.dev/script.js"
+          data-website-id="268f096f-c6fe-4d76-9592-8cf0f35b33b9"
+          data-domains="typer.grimm0.dev"
+        />
       </head>
       <body className="bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
         {children}
