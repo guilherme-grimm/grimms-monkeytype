@@ -1,4 +1,4 @@
-FROM oven/bun:1 AS deps
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -9,8 +9,10 @@ WORKDIR /app
 COPY . .
 RUN bun run build
 
-FROM oven/bun:1 AS runner
+FROM oven/bun:1-alpine AS runner
 WORKDIR /app
+
+RUN apk add --no-cache curl wget
 
 ENV NODE_ENV=production
 ENV PORT=3000
