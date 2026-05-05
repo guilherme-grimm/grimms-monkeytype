@@ -1,13 +1,21 @@
-import { existsSync } from 'node:fs'
+import { statSync } from 'node:fs'
 import { join, normalize } from 'node:path'
 
 import serverEntry from './dist/server/server.js'
 
 const port = Number(process.env.PORT ?? 3000)
 const clientRoot = join(import.meta.dir, 'dist', 'client')
+const publicFilePaths = new Set(['/favicon.png', '/favicon.ico', '/manifest.json', '/robots.txt'])
 
 function getStaticFilePath(pathname: string) {
-  const safePathname = pathname === '/' ? '' : pathname.replace(/^\/+/, '')
+  const isAssetPath = pathname.startsWith('/assets/')
+  const isKnownPublicFile = publicFilePaths.has(pathname)
+
+  if (!isAssetPath && !isKnownPublicFile) {
+    return null
+  }
+
+  const safePathname = pathname.replace(/^\/+/, '')
   const normalizedPath = normalize(safePathname)
 
   if (normalizedPath.startsWith('..')) {
@@ -15,7 +23,13 @@ function getStaticFilePath(pathname: string) {
   }
 
   const filePath = join(clientRoot, normalizedPath)
-  return existsSync(filePath) ? filePath : null
+
+  try {
+    const stats = statSync(filePath)
+    return stats.isFile() ? filePath : null
+  } catch {
+    return null
+  }
 }
 
 Bun.serve({
