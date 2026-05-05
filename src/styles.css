@@ -2,25 +2,25 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #090909;
-  --color-bg-raised: #10110f;
+  --color-bg: #010201;
+  --color-bg-raised: #060806;
   --color-panel: rgba(14, 17, 14, 0.94);
   --color-panel-soft: rgba(13, 16, 13, 0.76);
-  --color-text: #bddfbc;
-  --color-text-strong: #ecffe2;
-  --color-muted: #6f8f6f;
-  --color-primary: #39a340;
-  --color-primary-glow: #95ff86;
-  --color-accent: #d14a4a;
-  --color-accent-glow: #ff7272;
-  --color-border: rgba(93, 146, 86, 0.62);
-  --color-border-soft: rgba(93, 146, 86, 0.26);
-  --color-danger: #ff7d7d;
-  --color-danger-soft: rgba(193, 68, 68, 0.18);
-  --shadow-primary: 4px 4px 0 rgba(149, 255, 134, 0.4);
-  --shadow-accent: 4px 4px 0 rgba(255, 114, 114, 0.34);
-  --glow-primary: 0 0 24px rgba(149, 255, 134, 0.32);
-  --glow-accent: 0 0 20px rgba(255, 114, 114, 0.22);
+  --color-text: #ddffd8;
+  --color-text-strong: #fdfff9;
+  --color-muted: #81b27d;
+  --color-primary: #62ff62;
+  --color-primary-glow: #cbff9f;
+  --color-accent: #ff5c5c;
+  --color-accent-glow: #ff7b7b;
+  --color-border: rgba(143, 236, 121, 0.92);
+  --color-border-soft: rgba(143, 236, 121, 0.42);
+  --color-danger: #ffa4a4;
+  --color-danger-soft: rgba(255, 92, 92, 0.32);
+  --shadow-primary: 4px 4px 0 rgba(203, 255, 159, 0.68);
+  --shadow-accent: 4px 4px 0 rgba(255, 123, 123, 0.58);
+  --glow-primary: 0 0 38px rgba(203, 255, 159, 0.54);
+  --glow-accent: 0 0 28px rgba(255, 123, 123, 0.42);
   --pixel-border: 2px;
 }
 
@@ -36,8 +36,8 @@ body,
 
 html {
   background:
-    radial-gradient(circle at top, rgba(125, 255, 138, 0.09), transparent 28%),
-    linear-gradient(180deg, #0a0a0a 0%, #050605 100%);
+    radial-gradient(circle at top, rgba(203, 255, 159, 0.2), transparent 28%),
+    linear-gradient(180deg, #040504 0%, #010201 100%);
 }
 
 body {
@@ -45,8 +45,8 @@ body {
   font-family: "JetBrains Mono", "IBM Plex Mono", "Geist Mono", "Fira Code", monospace;
   color: var(--color-text);
   background-image:
-    linear-gradient(rgba(125, 255, 138, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125, 255, 138, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(203, 255, 159, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 255, 159, 0.032) 1px, transparent 1px);
   background-position: center center;
   background-size: 100% 26px, 26px 100%;
 }
@@ -87,8 +87,8 @@ button {
     0deg,
     transparent,
     transparent 2px,
-    rgba(125, 255, 138, 0.025) 2px,
-    rgba(125, 255, 138, 0.025) 4px
+    rgba(203, 255, 159, 0.04) 2px,
+    rgba(203, 255, 159, 0.04) 4px
   );
   pointer-events: none;
 }
@@ -251,17 +251,51 @@ button {
   letter-spacing: 0.015em;
   color: var(--color-muted);
   text-align: left;
+  max-width: 100%;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 226, 114, 0.65) transparent;
+}
+
+.snippet-word-past {
+  color: rgba(216, 255, 211, 0.64);
+}
+
+.snippet-word-past-typed {
+  color: rgba(216, 255, 211, 0.86);
+}
+
+.snippet-word-previous {
+  color: rgba(225, 255, 216, 0.88);
+}
+
+.snippet-word-current {
+  color: rgba(236, 255, 226, 0.95);
+}
+
+.snippet-word-next {
+  color: rgba(214, 255, 202, 0.82);
+}
+
+.snippet-word-future {
+  color: rgba(124, 171, 121, 0.58);
 }
 
 .snippet-upcoming {
   font-size: 1.04rem;
   line-height: 2rem;
-  color: rgba(111, 143, 111, 0.38);
+  color: rgba(124, 171, 121, 0.66);
+  max-width: 100%;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 226, 114, 0.45) transparent;
 }
 
 .snippet-indent {
   display: inline;
-  opacity: 0.42;
+  color: rgba(255, 123, 123, 0.62);
+  opacity: 0.86;
+  letter-spacing: 0.08em;
 }
 
 .snippet-char {
@@ -285,11 +319,13 @@ button {
 .snippet-space {
   position: relative;
   top: -0.08em;
-  color: rgba(184, 213, 184, 0.34);
+  font-size: 0.82em;
+  color: rgba(255, 114, 114, 0.84);
+  text-shadow: 0 0 8px rgba(255, 114, 114, 0.18);
 }
 
 .snippet-space-correct {
-  color: rgba(220, 247, 208, 0.72);
+  color: rgba(216, 255, 211, 0.8);
 }
 
 .typing-caret {
@@ -321,14 +357,14 @@ button {
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(125, 255, 138, 0.16),
-      0 0 12px rgba(125, 255, 138, 0.16);
+      0 0 0 1px rgba(193, 255, 157, 0.26),
+      0 0 16px rgba(193, 255, 157, 0.3);
   }
 
   50% {
     box-shadow:
-      0 0 0 1px rgba(125, 255, 138, 0.3),
-      0 0 22px rgba(125, 255, 138, 0.26);
+      0 0 0 1px rgba(193, 255, 157, 0.46),
+      0 0 32px rgba(193, 255, 157, 0.44);
   }
 }
 

@@ -1,193 +1,106 @@
-Welcome to your new TanStack Start app! 
+# grimms-monkeytype
 
-# Getting Started
+A Monkeytype-style coding typing game built with TanStack Start, React, Bun, and a visual system inspired by `grimm-pixel-works`.
 
-To run this application:
+## Current Product Shape
+- 30 second typing runs
+- multiline code snippets
+- languages currently supported:
+  - JavaScript
+  - TypeScript
+  - Python
+  - Go
+  - Java
+- line breaks are visual only
+- spaces count
+- `Tab` jumps leading indentation only
+- local bests stored in the browser
+- optional typing sound
+- first-visit onboarding card
+- `Space` after results starts a fresh run
+- long lines use horizontal follow behavior to keep the caret visible
+
+## Stack
+- TanStack Start
+- React 19
+- Bun
+- Tailwind 4
+- Bun production server via `server.ts`
+- Docker multi-stage build
+
+## Local Development
+Install dependencies:
 
 ```bash
 bun install
-bun --bun run dev
 ```
 
-# Building For Production
-
-To build this application for production:
+Run the dev server:
 
 ```bash
-bun --bun run build
+bun run dev
 ```
 
 ## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+Run the test suite:
 
 ```bash
-bun --bun run test
+bun run test
 ```
 
-## Styling
+## Production
+Build the app:
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `bun install @tailwindcss/vite tailwindcss -D`
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
+```bash
+bun run build
 ```
 
-Then anywhere in your JSX you can use it like so:
+Start the production server locally:
 
-```tsx
-<Link to="/about">About</Link>
+```bash
+bun run start
 ```
 
-This will create a link that will navigate to the `/about` route.
+## Docker
+Build the image:
 
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
+```bash
+docker build -t grimms-monkeytype .
 ```
 
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+Run the container:
 
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
+```bash
+docker run --rm -p 3000:3000 grimms-monkeytype
 ```
 
-## API Routes
+The app listens on `PORT`, defaulting to `3000`.
 
-You can create API routes by using the `server` property in your route definitions:
+## Deployment Notes
+- `server.ts` serves:
+  - SSR via TanStack Start
+  - static client assets from `dist/client`
+- static asset serving is required for CSS and JS to load correctly in production
+- Dockerfile is configured for multi-stage Bun builds and works well for Coolify-style Docker deployments
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
+## Analytics
+Umami is wired in at the root document level.
 
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
+Current setup:
+- self-hosted script: `https://umami.grimm0.dev/script.js`
+- restricted to: `typer.grimm0.dev`
 
-## Data Fetching
+## Near-Term Roadmap
+1. DB schema and validation model
+2. Auth foundation
+3. Leaderboard persistence
+4. Leaderboard UI
+5. Share CTA
+6. C#, and Kotlin packs
+7. Basic abuse/rate-limit tuning
+8. Survival mode later
 
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+## Product Decisions
+- leaderboard participation requires login
+- anti-exploit remains lightweight and sanity-check based for now
+- primary outcome is fun, not monetization

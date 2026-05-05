@@ -182,6 +182,11 @@ function PlayRoute() {
     }
   }
 
+  function startFreshRun(initialInput?: string) {
+    const nextSnippet = getFollowingSnippet(language, lastSnippetIdRef.current)
+    resetRound(nextSnippet, initialInput)
+  }
+
   function consumeIndentationWithTab() {
     const indentWidth = getLeadingIndentWidth(currentSnippet, typedValue.length)
 
@@ -301,7 +306,7 @@ function PlayRoute() {
       if (status === 'finished') {
         if (event.key === ' ') {
           event.preventDefault()
-          resetRound()
+          startFreshRun()
         }
 
         return

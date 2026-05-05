@@ -1,7 +1,7 @@
 import type { DisplayToken, LanguageId, NormalizedSnippet, Snippet } from './types'
 
 export function isSupportedLanguage(value: unknown): value is LanguageId {
-  return value === 'javascript' || value === 'typescript' || value === 'python' || value === 'go'
+  return value === 'javascript' || value === 'typescript' || value === 'python' || value === 'go' || value === 'java'
 }
 
 export function sanitizeTypedValue(value: string) {

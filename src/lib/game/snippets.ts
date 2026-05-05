@@ -283,6 +283,114 @@ const normalized = normalizeValues([' go ', undefined, ' rust '])`,
 }`,
     },
   ],
+  java: [
+    {
+      id: 'java-1',
+      language: 'java',
+      source: `public List<String> collectActiveUsers(List<User> users, Instant cutoff) {
+    List<String> activeUsers = new ArrayList<>();
+
+    for (User user : users) {
+        if (!user.isOnline() || !user.lastSeenAt().isAfter(cutoff)) {
+            continue;
+        }
+
+        activeUsers.add(user.name());
+    }
+
+    return activeUsers;
+}`,
+    },
+    {
+      id: 'java-2',
+      language: 'java',
+      source: `public Map<String, List<String>> groupPostsByTag(List<Post> posts) {
+    Map<String, List<String>> grouped = new HashMap<>();
+
+    for (Post post : posts) {
+        for (String tag : post.tags()) {
+            grouped.computeIfAbsent(tag, key -> new ArrayList<>()).add(post.slug());
+        }
+    }
+
+    return grouped;
+}`,
+    },
+    {
+      id: 'java-3',
+      language: 'java',
+      source: `public String buildSummary(Project project) {
+    if (project.name().isBlank()) {
+        throw new IllegalArgumentException("missing project name");
+    }
+
+    String summary = (project.name() + ":" + project.branch()).toLowerCase();
+    return summary.replace(" ", "-");
+}`,
+    },
+    {
+      id: 'java-4',
+      language: 'java',
+      source: `public List<ScoreEntry> topScores(List<ScoreEntry> entries) {
+    return entries.stream()
+        .filter(entry -> entry.score() > 0)
+        .sorted(Comparator.comparingInt(ScoreEntry::score).reversed())
+        .limit(5)
+        .toList();
+}`,
+    },
+    {
+      id: 'java-5',
+      language: 'java',
+      source: `public int clampScore(int score, int minimum, int maximum) {
+    if (score < minimum) {
+        return minimum;
+    }
+
+    if (score > maximum) {
+        return maximum;
+    }
+
+    return score;
+}`,
+    },
+    {
+      id: 'java-6',
+      language: 'java',
+      source: `public ScoreEntry pickBest(List<ScoreEntry> entries) {
+    if (entries.isEmpty()) {
+        return null;
+    }
+
+    entries.sort(Comparator.comparingInt(ScoreEntry::score).reversed());
+    return entries.getFirst();
+}`,
+    },
+    {
+      id: 'java-7',
+      language: 'java',
+      source: `public RouteLanguage getRouteLanguage(Map<String, String> search) {
+    String language = search.getOrDefault("language", "javascript");
+
+    return switch (language) {
+        case "java" -> RouteLanguage.JAVA;
+        case "python" -> RouteLanguage.PYTHON;
+        default -> RouteLanguage.JAVASCRIPT;
+    };
+}`,
+    },
+    {
+      id: 'java-8',
+      language: 'java',
+      source: `public List<String> normalizeValues(List<String> values) {
+    return values.stream()
+        .filter(Objects::nonNull)
+        .map(String::trim)
+        .filter(value -> !value.isEmpty())
+        .toList();
+}`,
+    },
+  ],
 }
 
 const normalizedSnippets: Record<LanguageId, Array<NormalizedSnippet>> = {
@@ -290,6 +398,7 @@ const normalizedSnippets: Record<LanguageId, Array<NormalizedSnippet>> = {
   typescript: rawSnippets.typescript.map(normalizeSnippet),
   python: rawSnippets.python.map(normalizeSnippet),
   go: rawSnippets.go.map(normalizeSnippet),
+  java: rawSnippets.java.map(normalizeSnippet),
 }
 
 export function getSnippetsForLanguage(language: LanguageId) {

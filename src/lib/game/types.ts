@@ -1,4 +1,4 @@
-export const languages = ['javascript', 'typescript', 'python', 'go'] as const
+export const languages = ['javascript', 'typescript', 'python', 'go', 'java'] as const
 
 export type LanguageId = (typeof languages)[number]
 
