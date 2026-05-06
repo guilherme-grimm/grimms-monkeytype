@@ -56,8 +56,10 @@ export const score = sqliteTable('score', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   language: text('language').notNull(),
-  mode: text('mode').notNull().default('standard'),
+  mode: text('mode').notNull().default('normal'),
   score: integer('score').notNull(),
+  baseScore: integer('base_score').notNull().default(0),
+  multiplier: real('multiplier').notNull().default(1.0),
   wpm: real('wpm').notNull(),
   cpm: integer('cpm').notNull(),
   accuracy: real('accuracy').notNull(),
@@ -76,7 +78,7 @@ export const bestScore = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     language: text('language').notNull(),
-    mode: text('mode').notNull().default('standard'),
+    mode: text('mode').notNull().default('normal'),
     scoreId: text('score_id')
       .notNull()
       .references(() => score.id, { onDelete: 'cascade' }),

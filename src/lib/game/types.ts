@@ -1,4 +1,13 @@
-export const languages = ['javascript', 'typescript', 'python', 'go', 'java'] as const
+export const languages = [
+  'javascript',
+  'typescript',
+  'python',
+  'go',
+  'java',
+  'kotlin',
+  'ruby',
+  'php',
+] as const
 
 export type LanguageId = (typeof languages)[number]
 
@@ -22,6 +31,9 @@ export type RoundStatus = 'idle' | 'active' | 'finished'
 
 export type RoundMetrics = {
   score: number
+  baseScore: number
+  multiplier: number
+  mode: DifficultyPreset
   wpm: number
   cpm: number
   accuracy: number
@@ -36,8 +48,11 @@ export type LocalBestScore = RoundMetrics & {
   achievedAt: string
 }
 
+import type { DifficultyPreset } from './difficulty'
+
 export type StoredPreferences = {
   lastLanguage?: LanguageId
   typingSoundEnabled?: boolean
   hasSeenPlayOnboarding?: boolean
+  difficultyPreset?: DifficultyPreset
 }

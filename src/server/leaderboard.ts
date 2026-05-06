@@ -1,5 +1,6 @@
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { asc, desc, eq } from 'drizzle-orm'
 
+import type { DifficultyPreset } from '#/lib/game/difficulty'
 import { languages, type LanguageId } from '#/lib/game/types'
 
 import { bestScore, score, user } from './auth-schema'
@@ -10,36 +11,64 @@ export type LeaderboardEntry = {
   userName: string
   userImage: string | null
   language: LanguageId
+  mode: DifficultyPreset
   score: number
+  baseScore: number
+  multiplier: number
   accuracy: number
   wpm: number
   snippetsCompleted: number
   achievedAt: Date
 }
 
+// One row per (userId, language, mode) in best_score, so a user may have up to
+// `difficultyPresets.length` candidates per language. Fetching a multiple of
+// the requested limit and deduping by userId keeps each player at their
+// single highest run across modes (which is what the multiplier system is
+// designed to surface — Hard runs naturally rank higher).
+const MODE_FANOUT = 3
+
+function dedupeByUser(rows: Array<LeaderboardEntry>, limit: number) {
+  const seen = new Set<string>()
+  const result: Array<LeaderboardEntry> = []
+  for (const row of rows) {
+    if (seen.has(row.userId)) continue
+    seen.add(row.userId)
+    result.push(row)
+    if (result.length >= limit) break
+  }
+  return result
+}
+
+const projection = {
+  userId: user.id,
+  userName: user.name,
+  userImage: user.image,
+  language: bestScore.language,
+  mode: bestScore.mode,
+  score: score.score,
+  baseScore: score.baseScore,
+  multiplier: score.multiplier,
+  accuracy: score.accuracy,
+  wpm: score.wpm,
+  snippetsCompleted: score.snippetsCompleted,
+  achievedAt: bestScore.createdAt,
+}
+
 export async function getLeaderboardPreview(limit = 5) {
   const entries = await Promise.all(
     languages.map(async (language) => {
       const rows = await db
-        .select({
-          userId: user.id,
-          userName: user.name,
-          userImage: user.image,
-          language: bestScore.language,
-          score: score.score,
-          accuracy: score.accuracy,
-          wpm: score.wpm,
-          snippetsCompleted: score.snippetsCompleted,
-          achievedAt: bestScore.createdAt,
-        })
+        .select(projection)
         .from(bestScore)
         .innerJoin(user, eq(bestScore.userId, user.id))
         .innerJoin(score, eq(bestScore.scoreId, score.id))
-        .where(and(eq(bestScore.language, language), eq(bestScore.mode, 'standard')))
+        .where(eq(bestScore.language, language))
         .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
-        .limit(limit)
+        .limit(limit * MODE_FANOUT)
 
-      return [language, rows as Array<LeaderboardEntry>] as const
+      const deduped = dedupeByUser(rows as Array<LeaderboardEntry>, limit)
+      return [language, deduped] as const
     }),
   )
 
@@ -48,23 +77,13 @@ export async function getLeaderboardPreview(limit = 5) {
 
 export async function getLeaderboardByLanguage(language: LanguageId, limit = 25) {
   const rows = await db
-    .select({
-      userId: user.id,
-      userName: user.name,
-      userImage: user.image,
-      language: bestScore.language,
-      score: score.score,
-      accuracy: score.accuracy,
-      wpm: score.wpm,
-      snippetsCompleted: score.snippetsCompleted,
-      achievedAt: bestScore.createdAt,
-    })
+    .select(projection)
     .from(bestScore)
     .innerJoin(user, eq(bestScore.userId, user.id))
     .innerJoin(score, eq(bestScore.scoreId, score.id))
-    .where(and(eq(bestScore.language, language), eq(bestScore.mode, 'standard')))
+    .where(eq(bestScore.language, language))
     .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
-    .limit(limit)
+    .limit(limit * MODE_FANOUT)
 
-  return rows as Array<LeaderboardEntry>
+  return dedupeByUser(rows as Array<LeaderboardEntry>, limit)
 }

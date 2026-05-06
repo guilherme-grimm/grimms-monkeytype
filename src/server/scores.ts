@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { DEFAULT_DIFFICULTY, difficultyPresets } from '#/lib/game/difficulty'
 import { calculateRoundMetrics } from '#/lib/game/scoring'
 import { languages } from '#/lib/game/types'
 
@@ -11,7 +12,7 @@ import { db } from './db'
 
 export const submitScoreSchema = z.object({
   language: z.enum(languages),
-  mode: z.literal('standard').default('standard'),
+  mode: z.enum(difficultyPresets).default(DEFAULT_DIFFICULTY),
   correctChars: z.number().int().nonnegative(),
   incorrectChars: z.number().int().nonnegative(),
   snippetsCompleted: z.number().int().nonnegative(),
@@ -49,11 +50,16 @@ function shouldReplaceDbBest(
 
 export async function submitAuthenticatedScore(userId: string, rawInput: SubmitScoreInput) {
   const input = submitScoreSchema.parse(rawInput)
+  // Server is the single source of truth for the multiplier — it derives it
+  // from the validated `mode` enum, never accepts a client-provided value.
+  // We persist the applied multiplier on the row so future rebalances of
+  // presetMultiplier() don't rewrite history.
   const metrics = calculateRoundMetrics({
     correctChars: input.correctChars,
     incorrectChars: input.incorrectChars,
     elapsedMs: input.elapsedMs,
     snippetsCompleted: input.snippetsCompleted,
+    mode: input.mode,
   })
 
   const createdAt = new Date()
@@ -65,6 +71,8 @@ export async function submitAuthenticatedScore(userId: string, rawInput: SubmitS
     language: input.language,
     mode: input.mode,
     score: metrics.score,
+    baseScore: metrics.baseScore,
+    multiplier: metrics.multiplier,
     wpm: metrics.wpm,
     cpm: metrics.cpm,
     accuracy: metrics.accuracy,

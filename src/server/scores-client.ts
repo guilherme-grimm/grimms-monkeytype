@@ -14,7 +14,7 @@ export async function submitScoreServerFn(input: {
     },
     body: JSON.stringify({
       language: data.language,
-      mode: 'standard',
+      mode: data.mode,
       correctChars: data.correctChars,
       incorrectChars: data.incorrectChars,
       snippetsCompleted: data.snippetsCompleted,

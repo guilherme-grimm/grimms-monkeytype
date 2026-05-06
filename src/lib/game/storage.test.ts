@@ -7,6 +7,9 @@ describe('best score replacement', () => {
     const currentBest = {
       language: 'javascript' as const,
       score: 300,
+      baseScore: 300,
+      multiplier: 1,
+      mode: 'normal' as const,
       wpm: 60,
       cpm: 300,
       accuracy: 92,

@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { roundDurationMs } from '#/lib/game/constants'
+import {
+  DEFAULT_DIFFICULTY,
+  type DifficultyPreset,
+  presetToFlags,
+} from '#/lib/game/difficulty'
 import { getLeadingIndentWidth } from '#/lib/game/indentation'
-import { sanitizeTypedValue } from '#/lib/game/normalization'
+import { normalizeSnippet, sanitizeTypedValue } from '#/lib/game/normalization'
 import { calculateRoundMetrics, isSnippetComplete } from '#/lib/game/scoring'
 import { getFollowingSnippet, getInitialSnippet } from '#/lib/game/snippets'
 import {
@@ -13,10 +18,18 @@ import {
   shouldReplaceBest,
 } from '#/lib/game/storage'
 import { createTypingSoundPlayer } from '#/lib/game/typing-sound'
-import type { LanguageId, LocalBestScore, NormalizedSnippet, RoundMetrics, RoundStatus } from '#/lib/game/types'
+import type {
+  LanguageId,
+  LocalBestScore,
+  NormalizedSnippet,
+  RoundMetrics,
+  RoundStatus,
+  Snippet,
+} from '#/lib/game/types'
 
 type UseTypingRoundOptions = {
   language: LanguageId
+  difficulty?: DifficultyPreset
   onSnippetAdvance: () => void
   onResetFocus: () => void
   onFinish?: (result: LocalBestScore, elapsedMs: number) => void | Promise<void>
@@ -43,10 +56,18 @@ export type UseTypingRoundResult = {
   startFreshRun: (initialInput?: string) => void
 }
 
-export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFinish }: UseTypingRoundOptions): UseTypingRoundResult {
+export function useTypingRound({
+  language,
+  difficulty = DEFAULT_DIFFICULTY,
+  onSnippetAdvance,
+  onResetFocus,
+  onFinish,
+}: UseTypingRoundOptions): UseTypingRoundResult {
+  const flags = useMemo(() => presetToFlags(difficulty), [difficulty])
+
   const [status, setStatus] = useState<RoundStatus>('idle')
-  const [currentSnippet, setCurrentSnippet] = useState<NormalizedSnippet>(() => getInitialSnippet(language))
-  const [upcomingSnippet, setUpcomingSnippet] = useState<NormalizedSnippet>(() => {
+  const [currentRawSnippet, setCurrentRawSnippet] = useState<Snippet>(() => getInitialSnippet(language))
+  const [upcomingRawSnippet, setUpcomingRawSnippet] = useState<Snippet>(() => {
     const initial = getInitialSnippet(language)
     return getFollowingSnippet(language, initial.id)
   })
@@ -60,9 +81,18 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [finalMetrics, setFinalMetrics] = useState<RoundMetrics | null>(null)
 
+  const currentSnippet = useMemo(
+    () => normalizeSnippet(currentRawSnippet, flags),
+    [currentRawSnippet, flags],
+  )
+  const upcomingSnippet = useMemo(
+    () => normalizeSnippet(upcomingRawSnippet, flags),
+    [upcomingRawSnippet, flags],
+  )
+
   const startedAtRef = useRef<number | null>(null)
   const previousInputRef = useRef('')
-  const lastSnippetIdRef = useRef(currentSnippet.id)
+  const lastSnippetIdRef = useRef(currentRawSnippet.id)
   const typingSoundRef = useRef(createTypingSoundPlayer())
   const finishRoundRef = useRef<(finalElapsedMs: number) => void>(() => {})
 
@@ -77,8 +107,8 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
   useEffect(() => {
     const nextSnippet = getInitialSnippet(language)
     lastSnippetIdRef.current = nextSnippet.id
-    setCurrentSnippet(nextSnippet)
-    setUpcomingSnippet(getFollowingSnippet(language, nextSnippet.id))
+    setCurrentRawSnippet(nextSnippet)
+    setUpcomingRawSnippet(getFollowingSnippet(language, nextSnippet.id))
     setTypedValue('')
     setElapsedMs(0)
     setCorrectChars(0)
@@ -89,7 +119,7 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
     previousInputRef.current = ''
     startedAtRef.current = null
     saveStoredPreferences({ lastLanguage: language })
-  }, [language])
+  }, [language, difficulty])
 
   useEffect(() => {
     if (status !== 'active') {
@@ -141,6 +171,7 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
       incorrectChars,
       elapsedMs: finalElapsedMs,
       snippetsCompleted,
+      mode: difficulty,
     })
 
     const result: LocalBestScore = {
@@ -159,7 +190,7 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
   finishRoundRef.current = finishRound
 
   function handleValueChange(nextRawValue: string) {
-    const nextValue = sanitizeTypedValue(nextRawValue)
+    const nextValue = sanitizeTypedValue(nextRawValue, flags)
     const previousValue = previousInputRef.current
 
     if (status === 'finished') {
@@ -202,19 +233,23 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
     setTypedValue(nextValue)
 
     if (isSnippetComplete(nextValue, currentSnippet.normalized)) {
-      const nextSnippet = upcomingSnippet
+      const nextSnippet = upcomingRawSnippet
       const nextUpcomingSnippet = getFollowingSnippet(language, nextSnippet.id)
       lastSnippetIdRef.current = nextSnippet.id
       previousInputRef.current = ''
       setSnippetsCompleted((value) => value + 1)
-      setCurrentSnippet(nextSnippet)
-      setUpcomingSnippet(nextUpcomingSnippet)
+      setCurrentRawSnippet(nextSnippet)
+      setUpcomingRawSnippet(nextUpcomingSnippet)
       setTypedValue('')
       onSnippetAdvance()
     }
   }
 
   function consumeIndentationWithTab() {
+    if (flags.indentMode !== 'tab-helper') {
+      return false
+    }
+
     const indentWidth = getLeadingIndentWidth(currentSnippet, typedValue.length)
 
     if (indentWidth === 0) {
@@ -225,13 +260,13 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
     return true
   }
 
-  function resetRound(nextSnippet?: NormalizedSnippet, initialInput?: string) {
+  function resetRound(nextSnippet?: Snippet, initialInput?: string) {
     const snippet = nextSnippet ?? getInitialSnippet(language)
     lastSnippetIdRef.current = snippet.id
     startedAtRef.current = null
     previousInputRef.current = ''
-    setCurrentSnippet(snippet)
-    setUpcomingSnippet(getFollowingSnippet(language, snippet.id))
+    setCurrentRawSnippet(snippet)
+    setUpcomingRawSnippet(getFollowingSnippet(language, snippet.id))
     setTypedValue('')
     setElapsedMs(0)
     setCorrectChars(0)
@@ -263,6 +298,7 @@ export function useTypingRound({ language, onSnippetAdvance, onResetFocus, onFin
     incorrectChars,
     elapsedMs,
     snippetsCompleted,
+    mode: difficulty,
   })
 
   const remainingMs = Math.max(0, roundDurationMs - elapsedMs)

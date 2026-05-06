@@ -6,9 +6,10 @@ import { SnippetDisplay } from '#/components/game/snippet-display'
 import { useSession } from '#/lib/auth-client'
 import { useGlobalTypingKeys } from '#/hooks/useGlobalTypingKeys'
 import { useTypingRound } from '#/hooks/useTypingRound'
+import { DEFAULT_DIFFICULTY, isDifficultyPreset, type DifficultyPreset } from '#/lib/game/difficulty'
 import { countMatchingPrefix } from '#/lib/game/scoring'
 import { isSupportedLanguage } from '#/lib/game/normalization'
-import { shouldReplaceBest } from '#/lib/game/storage'
+import { loadStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
 import { submitScoreServerFn } from '#/server/scores-client'
 import { useToast } from '#/components/ui/toast'
@@ -62,8 +63,22 @@ function PlayRoute() {
     }
   }, [session?.user, showToast])
 
+  // Start with the default so SSR and the first client render match. After
+  // hydration, swap in the user's stored preference. Reading localStorage
+  // during render produced a hydration mismatch in <SnippetDisplay> because
+  // the server has no storage but the client did, and the snippet token
+  // shape differs between presets (Hard counts \n, others don't).
+  const [difficulty, setDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
+  useEffect(() => {
+    const stored = loadStoredPreferences()
+    if (isDifficultyPreset(stored?.difficultyPreset)) {
+      setDifficulty(stored.difficultyPreset)
+    }
+  }, [])
+
   const round = useTypingRound({
     language,
+    difficulty,
     onSnippetAdvance: () => requestAnimationFrame(focusInput),
     onResetFocus: () => requestAnimationFrame(focusInput),
     onFinish: handleFinish,
