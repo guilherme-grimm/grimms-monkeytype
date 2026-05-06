@@ -12,7 +12,7 @@ RUN bun run build
 FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache curl wget
+RUN apk add --no-cache curl wget sqlite
 
 ENV NODE_ENV=production
 ENV PORT=3000

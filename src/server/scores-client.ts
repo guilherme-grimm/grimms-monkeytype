@@ -23,7 +23,12 @@ export async function submitScoreServerFn(input: {
   })
 
   if (!response.ok) {
-    throw new Error('Failed to submit score')
+    const body = await response.text().catch(() => '')
+    const error = new Error(
+      `Score submit failed (${response.status}): ${body || response.statusText}`,
+    ) as Error & { status?: number }
+    error.status = response.status
+    throw error
   }
 
   return response.json()

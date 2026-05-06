@@ -13,6 +13,7 @@ import { Route as PlayRouteImport } from './routes/play'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiScoresRouteImport } from './routes/api/scores'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const PlayRoute = PlayRouteImport.update({
@@ -35,6 +36,11 @@ const ApiScoresRoute = ApiScoresRouteImport.update({
   path: '/api/scores',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -60,19 +68,33 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/leaderboard' | '/play' | '/api/scores' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/leaderboard'
+    | '/play'
+    | '/api/health'
+    | '/api/scores'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/leaderboard' | '/play' | '/api/scores' | '/api/auth/$'
+  to:
+    | '/'
+    | '/leaderboard'
+    | '/play'
+    | '/api/health'
+    | '/api/scores'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/leaderboard'
     | '/play'
+    | '/api/health'
     | '/api/scores'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -81,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LeaderboardRoute: typeof LeaderboardRoute
   PlayRoute: typeof PlayRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiScoresRoute: typeof ApiScoresRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -115,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiScoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -129,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LeaderboardRoute: LeaderboardRoute,
   PlayRoute: PlayRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiScoresRoute: ApiScoresRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

@@ -46,9 +46,19 @@ function PlayRoute() {
       await submitScoreServerFn({ data: { ...result, elapsedMs } })
       setSubmitStatus('saved')
       showToast('Score saved to leaderboard!', 'success')
-    } catch {
+    } catch (err) {
       setSubmitStatus('error')
-      showToast('Failed to save score. Try again.', 'error')
+      const status = (err as { status?: number } | null)?.status
+      console.error('Score submission failed', err)
+      if (status === 401) {
+        showToast('Session expired — sign in again to save your score.', 'error')
+      } else if (status === 422) {
+        showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
+      } else if (status && status >= 500) {
+        showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
+      } else {
+        showToast('Failed to save score. Try again.', 'error')
+      }
     }
   }, [session?.user, showToast])
 
