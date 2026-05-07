@@ -219,8 +219,11 @@ function Home() {
               <div className="mt-4 grid gap-3">
                 {selectedLeaderboard.length > 0 ? (
                   selectedLeaderboard.map((entry, index) => (
-                    <article key={`${entry.language}-${entry.userId}`} className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4">
-                      <div className="flex items-start justify-between gap-4">
+                    <article
+                      key={`${entry.language}-${entry.userId}`}
+                      className="min-w-0 pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <p className="eyebrow text-[var(--color-muted)]">#{index + 1}</p>
                           <p className="mt-2 truncate text-lg font-semibold text-[var(--color-text-strong)]">
@@ -231,7 +234,7 @@ function Home() {
                           </p>
                         </div>
 
-                        <div className="shrink-0 whitespace-nowrap text-right">
+                        <div className="whitespace-nowrap sm:shrink-0 sm:text-right">
                           <p className="text-2xl font-semibold terminal-text">{entry.score}</p>
                           <p className="mt-1 text-sm text-[var(--color-muted)]">{entry.snippetsCompleted} snippets</p>
                         </div>

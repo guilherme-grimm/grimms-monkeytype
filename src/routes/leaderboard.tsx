@@ -143,13 +143,13 @@ type LeaderboardRowProps = {
 function LeaderboardRow({ rank, entry, isSelf }: LeaderboardRowProps) {
   return (
     <article
-      className={`pixel-border px-4 py-4 ${
+      className={`min-w-0 pixel-border px-4 py-4 ${
         isSelf
           ? 'bg-[rgba(132,226,114,0.08)] outline outline-1 outline-[rgba(132,226,114,0.5)]'
           : 'bg-[rgba(255,255,255,0.03)]'
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="eyebrow text-[var(--color-muted)]">
             #{rank}
@@ -176,7 +176,7 @@ function LeaderboardRow({ rank, entry, isSelf }: LeaderboardRowProps) {
           </div>
         </div>
 
-        <div className="shrink-0 whitespace-nowrap text-right">
+        <div className="whitespace-nowrap sm:shrink-0 sm:text-right">
           <p className="text-3xl font-semibold terminal-text">{entry.score}</p>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
             base {entry.baseScore}
