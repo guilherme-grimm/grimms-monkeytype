@@ -2,14 +2,18 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AuthChip } from '#/components/auth/auth-chip'
+import { ComboCounter } from '#/components/game/combo-counter'
+import { RankBadge } from '#/components/game/rank-badge'
 import { SnippetDisplay } from '#/components/game/snippet-display'
+import { SettingsButton } from '#/components/settings-button'
+import { SettingsDrawer } from '#/components/settings-drawer'
 import { useSession } from '#/lib/auth-client'
 import { useGlobalTypingKeys } from '#/hooks/useGlobalTypingKeys'
 import { useTypingRound } from '#/hooks/useTypingRound'
 import { DEFAULT_DIFFICULTY, isDifficultyPreset, type DifficultyPreset } from '#/lib/game/difficulty'
-import { countMatchingPrefix } from '#/lib/game/scoring'
+import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { isSupportedLanguage } from '#/lib/game/normalization'
-import { loadStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
+import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
 import { submitScoreServerFn } from '#/server/scores-client'
 import { useToast } from '#/components/ui/toast'
@@ -69,12 +73,21 @@ function PlayRoute() {
   // the server has no storage but the client did, and the snippet token
   // shape differs between presets (Hard counts \n, others don't).
   const [difficulty, setDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   useEffect(() => {
     const stored = loadStoredPreferences()
     if (isDifficultyPreset(stored?.difficultyPreset)) {
       setDifficulty(stored.difficultyPreset)
     }
   }, [])
+
+  function handleDifficultyChange(next: DifficultyPreset) {
+    setDifficulty(next)
+    // useTypingRound watches difficulty; the change effect resets the round
+    // with a fresh snippet draw, which is what the player wants when they
+    // dial the difficulty during a session.
+    saveStoredPreferences({ difficultyPreset: next })
+  }
 
   const round = useTypingRound({
     language,
@@ -91,7 +104,9 @@ function PlayRoute() {
     focusInput,
     onPrintable: round.handleValueChange,
     onTab: round.consumeIndentationWithTab,
-    onSpaceRestart: () => round.startFreshRun(),
+    onEscapeReset: round.resetRound,
+    onSpaceReplay: round.replayCurrentSnippet,
+    onEnterNextSnippet: () => round.startFreshRun(),
   })
 
   useEffect(() => {
@@ -145,6 +160,9 @@ function PlayRoute() {
           <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-[var(--color-primary-glow)]">
             {language}
           </span>
+          <span className="pixel-border bg-[rgba(47,125,50,0.08)] px-3 py-1 text-[var(--color-muted)]">
+            {difficulty}
+          </span>
           <button
             className={round.typingSoundEnabled ? 'button-accent' : 'button-secondary'}
             onClick={() => round.setTypingSoundEnabled((value) => !value)}
@@ -154,9 +172,19 @@ function PlayRoute() {
           <button className="button-secondary" onClick={() => navigate({ to: '/', search: { language } })}>
             Change language
           </button>
+          <SettingsButton onClick={() => setSettingsOpen(true)} />
           <AuthChip />
         </div>
       </header>
+
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        difficulty={difficulty}
+        onDifficultyChange={handleDifficultyChange}
+        typingSoundEnabled={round.typingSoundEnabled}
+        onTypingSoundChange={(next) => round.setTypingSoundEnabled(next)}
+      />
 
       <section
         className={`stats-strip mt-6 flex items-center justify-between gap-4 px-4 py-3 transition-all duration-200 ${
@@ -182,6 +210,9 @@ function PlayRoute() {
         className={`run-shell scan-lines relative mt-6 flex min-h-[32rem] flex-col gap-8 px-5 py-7 sm:px-10 sm:py-10 ${
           isActive ? 'run-shell-active' : isFinished ? 'run-shell-finished panel' : 'run-shell-idle panel'
         }`}
+        data-error-token={round.errorPulseToken}
+        data-cleared-token={round.snippetClearedToken}
+        style={{ ['--immersion-level' as string]: round.streakIntensity.toFixed(3) }}
         onClick={focusInput}
       >
         {round.showOnboarding && round.status === 'idle' ? (
@@ -201,8 +232,8 @@ function PlayRoute() {
                 <div className="space-y-2 text-[var(--color-muted)]">
                   <p>Line breaks are visual only.</p>
                   <p>Spaces still count.</p>
-                  <p>`Tab` jumps leading indentation.</p>
-                  <p>`Space` starts a new run after the result screen.</p>
+                  <p>`Tab` jumps leading indentation, `Esc` aborts the run.</p>
+                  <p>After the result: `Space` runs the same snippet back, `Enter` pulls a new one.</p>
                 </div>
                 <div className="flex flex-wrap gap-3 pt-2">
                   <button className="button-primary" onClick={round.dismissOnboarding}>
@@ -250,11 +281,18 @@ function PlayRoute() {
           }`}
         >
           <SnippetDisplay
+            key={round.currentSnippet.id}
             currentSnippet={round.currentSnippet}
             upcomingSnippet={round.upcomingSnippet}
             typedValue={round.typedValue}
           />
         </div>
+
+        <ComboCounter
+          streak={round.correctStreak}
+          errorPulseToken={round.errorPulseToken}
+          snippetClearedToken={round.snippetClearedToken}
+        />
 
         {round.status !== 'finished' || !round.finalMetrics ? (
           <div
@@ -271,7 +309,11 @@ function PlayRoute() {
             <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
               tab = indent
             </span>
-            <button className="button-secondary" onClick={round.resetRound}>
+            <button
+              className="button-secondary"
+              onClick={round.resetRound}
+              title="Abort this run and pull a new snippet (Esc)"
+            >
               Reset run
             </button>
           </div>
@@ -279,8 +321,10 @@ function PlayRoute() {
           <ResultPanel
             metrics={round.finalMetrics}
             bestScore={round.bestScore}
+            isPersonalBest={round.isPersonalBest}
             language={language}
-            onRestart={round.resetRound}
+            onReplay={round.replayCurrentSnippet}
+            onNextSnippet={round.startFreshRun}
             submitStatus={submitStatus}
             lastResult={lastFinishedResult}
           />
@@ -293,7 +337,9 @@ function PlayRoute() {
 function ResultPanel(props: {
   metrics: RoundMetrics
   bestScore: LocalBestScore | null
-  onRestart: () => void
+  isPersonalBest: boolean
+  onReplay: () => void
+  onNextSnippet: () => void
   language: LanguageId
   submitStatus: 'idle' | 'saving' | 'saved' | 'error' | 'anon'
   lastResult: { metrics: RoundMetrics; elapsedMs: number } | null
@@ -344,9 +390,14 @@ function ResultPanel(props: {
   }
 
   return (
-    <div className="result-shell mt-auto p-5 sm:p-6">
-      <p className="eyebrow text-[var(--color-accent-glow)]">run complete</p>
-      <h2 className="mt-2 text-3xl font-semibold terminal-text">{props.metrics.score} score</h2>
+    <div className={`result-shell mt-auto p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow text-[var(--color-accent-glow)]">run complete</p>
+          <h2 className="mt-2 text-3xl font-semibold terminal-text">{props.metrics.score} score</h2>
+        </div>
+        <RankBadge rank={rankFor(props.metrics.score)} isPersonalBest={props.isPersonalBest} />
+      </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-3">
           <p className="eyebrow text-[var(--color-muted)]">wpm</p>
@@ -387,8 +438,11 @@ function ResultPanel(props: {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <button className="button-primary" onClick={props.onRestart}>
+        <button className="button-primary" onClick={props.onReplay} title="Same snippet, fresh timer (Space)">
           Run it back
+        </button>
+        <button className="button-secondary" onClick={props.onNextSnippet} title="Next snippet from the pool (Enter)">
+          Next snippet
         </button>
         <button
           className={copied ? 'button-secondary' : 'button-secondary'}

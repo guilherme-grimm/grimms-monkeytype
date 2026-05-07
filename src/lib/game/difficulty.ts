@@ -42,3 +42,12 @@ export function presetMultiplier(preset: DifficultyPreset): number {
 }
 
 export const DEFAULT_FLAGS: DifficultyFlags = presetToFlags(DEFAULT_DIFFICULTY)
+
+// Single-line, tooltip-shaped explainers — kept short so they fit a floating
+// hint above a pill without wrapping awkwardly. Drawer has its own longer
+// description block; this is for hover/focus on selectors.
+export const PRESET_TOOLTIPS: Record<DifficultyPreset, string> = {
+  easy: 'Newlines auto-skip. Tab fills indentation. Score ×0.85.',
+  normal: 'Newlines auto-skip. Tab fills indentation. Score ×1.00.',
+  hard: 'Type every newline. Tab still fills indentation. Score ×1.25.',
+}

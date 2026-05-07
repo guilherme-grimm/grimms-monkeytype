@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
+import { SKELETON_SNIPPET_ID } from '#/lib/game/snippets'
 import { getWordRegion, type WordRegion } from '#/lib/game/word-regions'
 import type { NormalizedSnippet } from '#/lib/game/types'
 
@@ -224,15 +225,23 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
 
       <div className="h-px w-full bg-white/8" />
 
-      <pre className="snippet-upcoming overflow-x-auto whitespace-pre">
-        {upcomingSnippet.displayTokens.map((token, index) => {
-          if (token.scoringIndex === null) {
-            return renderIgnoredToken(token.value, `${upcomingSnippet.id}-${index}`)
-          }
+      {upcomingSnippet.id === SKELETON_SNIPPET_ID ? (
+        <div className="snippet-upcoming-skeleton" aria-hidden="true">
+          <span className="snippet-skeleton-bar snippet-skeleton-bar-a" />
+          <span className="snippet-skeleton-bar snippet-skeleton-bar-b" />
+          <span className="snippet-skeleton-bar snippet-skeleton-bar-c" />
+        </div>
+      ) : (
+        <pre className="snippet-upcoming overflow-x-auto whitespace-pre">
+          {upcomingSnippet.displayTokens.map((token, index) => {
+            if (token.scoringIndex === null) {
+              return renderIgnoredToken(token.value, `${upcomingSnippet.id}-${index}`)
+            }
 
-          return <span key={`${upcomingSnippet.id}-${index}`}>{token.value === ' ' ? '·' : token.value}</span>
-        })}
-      </pre>
+            return <span key={`${upcomingSnippet.id}-${index}`}>{token.value === ' ' ? '·' : token.value}</span>
+          })}
+        </pre>
+      )}
 
       <p className="text-xs uppercase tracking-[0.28em] text-[var(--color-muted)]/75">
         current snippet above, next snippet queued below

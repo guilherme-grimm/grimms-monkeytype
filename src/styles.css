@@ -76,7 +76,12 @@ button {
 
 .scan-lines {
   position: relative;
-  overflow: hidden;
+  /* `overflow: clip` (vs hidden) still contains the scanline pseudo-element
+     but lets `overflow-clip-margin` permit short decorations like floating
+     tooltips on edge-positioned children to escape the panel border. The
+     pseudo-element is `inset: 0` so it never extends past the panel anyway. */
+  overflow: clip;
+  overflow-clip-margin: 12rem;
 }
 
 .scan-lines::before {
@@ -237,8 +242,24 @@ button {
   transition: opacity 160ms ease;
 }
 
-.run-controls-active {
+/* Mid-run: fade the helper labels heavily but keep buttons clearly clickable.
+   Previously the whole .run-controls bar dropped to 0.24, which made the
+   Reset button look disabled. Buttons now stay at 0.7 and snap back to 1.0
+   on hover/focus, while the inline span helpers (typed-count, tab-indent)
+   fade out of the way. */
+.run-controls-active > span {
   opacity: 0.24;
+  transition: opacity 160ms ease;
+}
+
+.run-controls-active > button {
+  opacity: 0.7;
+  transition: opacity 160ms ease;
+}
+
+.run-controls-active > button:hover,
+.run-controls-active > button:focus-visible {
+  opacity: 1;
 }
 
 .snippet-display {
@@ -255,6 +276,7 @@ button {
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(132, 226, 114, 0.65) transparent;
+  animation: snippet-fade-in 110ms ease-out both;
 }
 
 .snippet-word-past {
@@ -289,6 +311,44 @@ button {
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(132, 226, 114, 0.45) transparent;
+  animation: snippet-fade-in 140ms ease-out both;
+}
+
+@keyframes snippet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.snippet-upcoming-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.35rem 0;
+  animation: snippet-fade-in 140ms ease-out both;
+}
+
+.snippet-skeleton-bar {
+  display: block;
+  height: 0.78rem;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 171, 121, 0.08) 0%,
+    rgba(124, 171, 121, 0.22) 50%,
+    rgba(124, 171, 121, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: snippet-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.snippet-skeleton-bar-a { width: 62%; }
+.snippet-skeleton-bar-b { width: 78%; animation-delay: 0.12s; }
+.snippet-skeleton-bar-c { width: 44%; animation-delay: 0.24s; }
+
+@keyframes snippet-skeleton-shimmer {
+  0% { background-position: 100% 0; opacity: 0.55; }
+  50% { opacity: 0.95; }
+  100% { background-position: -100% 0; opacity: 0.55; }
 }
 
 .snippet-indent {
@@ -394,6 +454,209 @@ button {
   animation: toast-enter 0.25s ease-out;
 }
 
+/* === L1 reactions: per-keystroke error pulse + micro-shake === */
+/* The data-error-token attribute on .run-shell increments per error; React's
+   diff swaps the attribute value, restarting the animation each time. */
+.run-shell[data-error-token]:not([data-error-token="0"]) {
+  animation: run-shell-error-shake 80ms ease-out;
+}
+
+@keyframes run-shell-error-shake {
+  0%   { transform: translateX(0); }
+  35%  { transform: translateX(-1px); }
+  70%  { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+/* === L2 reactions: combo counter === */
+.combo-counter {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.6rem;
+  z-index: 5;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(132, 226, 114, 0.35);
+  background: rgba(10, 16, 10, 0.6);
+  font-family: inherit;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(216, 255, 211, 0.86);
+  pointer-events: none;
+  animation: combo-pop-in 220ms ease-out;
+  transition: color 200ms ease, border-color 200ms ease, box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.combo-counter-label {
+  font-size: 0.62rem;
+  color: rgba(124, 171, 121, 0.85);
+}
+
+.combo-counter-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-text-strong, #ecffe2);
+}
+
+.combo-counter-glow {
+  border-color: rgba(132, 226, 114, 0.65);
+  color: rgba(236, 255, 226, 0.98);
+  box-shadow: 0 0 12px rgba(132, 226, 114, 0.35);
+}
+
+.combo-counter-roar {
+  border-color: rgba(168, 255, 140, 0.85);
+  box-shadow: 0 0 22px rgba(132, 226, 114, 0.55), inset 0 0 10px rgba(132, 226, 114, 0.18);
+  transform: scale(1.06);
+  animation: combo-roar-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes combo-pop-in {
+  0%   { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes combo-roar-pulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(132, 226, 114, 0.45), inset 0 0 8px rgba(132, 226, 114, 0.14); }
+  50%      { box-shadow: 0 0 28px rgba(132, 226, 114, 0.7),  inset 0 0 14px rgba(132, 226, 114, 0.22); }
+}
+
+/* Combo flicker on error (token change retriggers) */
+.combo-counter[data-error-token]:not([data-error-token="0"]) {
+  animation: combo-error-flicker 220ms ease-out;
+}
+
+@keyframes combo-error-flicker {
+  0%   { color: rgba(255, 123, 123, 0.92); border-color: rgba(255, 123, 123, 0.6); }
+  100% { color: rgba(216, 255, 211, 0.86); border-color: rgba(132, 226, 114, 0.35); }
+}
+
+/* L2 reactions: snippet-cleared CRT sweep across the run shell */
+.run-shell[data-cleared-token]:not([data-cleared-token="0"])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(132, 226, 114, 0) 35%,
+    rgba(132, 226, 114, 0.18) 50%,
+    rgba(132, 226, 114, 0) 65%,
+    transparent 100%
+  );
+  animation: run-shell-sweep 360ms ease-out;
+}
+
+@keyframes run-shell-sweep {
+  0%   { opacity: 0; transform: translateX(-100%); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
+}
+
+/* === L3 reactions: rank badge + PB callout === */
+.rank-badge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.rank-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  border: 1px solid rgba(132, 226, 114, 0.55);
+  background: rgba(8, 14, 8, 0.85);
+  overflow: hidden;
+  animation: rank-badge-burst 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rank-badge-letter {
+  font-family: inherit;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-strong, #ecffe2);
+  text-shadow: 0 0 10px rgba(132, 226, 114, 0.6);
+}
+
+.rank-badge-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(216, 255, 211, 0.22) 50%,
+    transparent 65%
+  );
+  animation: rank-badge-shimmer 1.4s ease-in-out 0.4s 1;
+}
+
+.rank-badge-s { border-color: rgba(168, 255, 140, 0.95); box-shadow: 0 0 26px rgba(168, 255, 140, 0.45); }
+.rank-badge-a { border-color: rgba(132, 226, 114, 0.85); box-shadow: 0 0 18px rgba(132, 226, 114, 0.35); }
+.rank-badge-b { border-color: rgba(124, 171, 121, 0.7); }
+.rank-badge-c { border-color: rgba(124, 171, 121, 0.5); }
+.rank-badge-d { border-color: rgba(255, 168, 123, 0.5); color: rgba(255, 207, 168, 0.9); }
+.rank-badge-d .rank-badge-letter { color: rgba(255, 207, 168, 0.95); text-shadow: 0 0 8px rgba(255, 168, 123, 0.4); }
+
+@keyframes rank-badge-burst {
+  0%   { opacity: 0; transform: scale(0.6); filter: blur(2px); }
+  60%  { opacity: 1; transform: scale(1.08); filter: blur(0); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rank-badge-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.rank-badge-pb-tag {
+  font-size: 0.62rem;
+  letter-spacing: 0.32em;
+  color: rgba(168, 255, 140, 0.95);
+  text-shadow: 0 0 8px rgba(132, 226, 114, 0.6);
+  animation: rank-pb-glitch 0.9s steps(2, end) 1;
+}
+
+@keyframes rank-pb-glitch {
+  0%   { opacity: 0; transform: translateX(-2px); }
+  20%  { opacity: 1; transform: translateX(2px); }
+  40%  { transform: translateX(-1px); }
+  60%  { transform: translateX(1px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.result-shell-pb {
+  position: relative;
+}
+
+.result-shell-pb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at top right,
+    rgba(168, 255, 140, 0.18) 0%,
+    transparent 55%
+  );
+  animation: result-pb-flash 700ms ease-out;
+}
+
+@keyframes result-pb-flash {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
 @media (min-width: 960px) {
   .hero-grid {
     grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
@@ -402,5 +665,241 @@ button {
   .snippet-current {
     font-size: 1.5rem;
     line-height: 2.8rem;
+  }
+}
+
+/* === Floating tooltip ======================================================
+   Apply via `class="has-tooltip" data-tooltip="..."`. Floats above the host
+   on hover/focus, fades in with a small slide. CSS-only — no JS, no portal —
+   so it Just Works in any context (drawer, header, anywhere). */
+.has-tooltip {
+  position: relative;
+}
+
+.has-tooltip::after,
+.has-tooltip::before {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 70;
+}
+
+.has-tooltip::after {
+  content: attr(data-tooltip);
+  width: max-content;
+  max-width: 18rem;
+  padding: 0.42rem 0.62rem;
+  border: 1px solid rgba(132, 226, 114, 0.45);
+  background: rgba(8, 14, 8, 0.96);
+  color: var(--color-text-strong, #ecffe2);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: none;
+  white-space: normal;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(132, 226, 114, 0.12);
+}
+
+.has-tooltip::before {
+  content: '';
+  width: 0;
+  height: 0;
+  bottom: calc(100% + 0.05rem);
+  border: 5px solid transparent;
+  border-top-color: rgba(132, 226, 114, 0.45);
+}
+
+.has-tooltip:hover::after,
+.has-tooltip:hover::before,
+.has-tooltip:focus-visible::after,
+.has-tooltip:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .has-tooltip::after,
+  .has-tooltip::before {
+    transition: opacity 80ms ease;
+    transform: translateX(-50%);
+  }
+  .has-tooltip:hover::after,
+  .has-tooltip:hover::before,
+  .has-tooltip:focus-visible::after,
+  .has-tooltip:focus-visible::before {
+    transform: translateX(-50%);
+  }
+}
+
+/* === Settings drawer + gear button ========================================== */
+.settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.settings-button:hover,
+.settings-button:focus-visible {
+  color: var(--color-text-strong, #ecffe2);
+  background: rgba(132, 226, 114, 0.08);
+  box-shadow: 0 0 0 1px rgba(132, 226, 114, 0.4);
+  outline: none;
+}
+
+.settings-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(2, 6, 4, 0.72);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+  animation: settings-drawer-fade 180ms ease-out;
+}
+
+@keyframes settings-drawer-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.settings-drawer {
+  position: relative;
+  width: min(28rem, 100%);
+  height: 100%;
+  background: var(--color-panel-soft, rgba(11, 13, 11, 0.92));
+  border-left: 1px solid rgba(132, 226, 114, 0.45);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+  padding: 1.6rem 1.4rem 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  animation: settings-drawer-slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes settings-drawer-slide {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.settings-drawer-header {
+  position: relative;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(132, 226, 114, 0.18);
+}
+
+.settings-drawer-close {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.4rem;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid rgba(132, 226, 114, 0.35);
+  color: var(--color-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.settings-drawer-close:hover,
+.settings-drawer-close:focus-visible {
+  color: var(--color-text-strong, #ecffe2);
+  background: rgba(132, 226, 114, 0.08);
+  box-shadow: 0 0 0 1px rgba(132, 226, 114, 0.5);
+  outline: none;
+}
+
+.settings-drawer-section {
+  padding: 0.4rem 0;
+}
+
+/* === Step 7: Immersion escalation ============================================
+   `--immersion-level` is set inline on .run-shell, range 0..1, sqrt-curved.
+   Values default to 0 if the var is missing so chrome looks normal at idle. */
+.run-shell {
+  --immersion-level: 0;
+}
+
+/* Vignette layer — radial-fades the periphery as immersion rises so the eye
+   tunnels onto the snippet. Lives behind everything via z-index 0; the actual
+   content sits at z-index 1+. */
+.run-shell-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent calc(60% - calc(var(--immersion-level) * 18%)),
+    rgba(0, 0, 0, calc(var(--immersion-level) * 0.55)) 100%
+  );
+  transition: background 320ms ease;
+}
+
+/* Surrounding chrome dims further as immersion climbs — already faded
+   at run start, this pushes it deeper so peripheral UI recedes. */
+.run-shell-active .run-meta-active {
+  opacity: calc(0.46 - var(--immersion-level) * 0.28);
+}
+
+.run-shell-active .run-controls-active > span {
+  opacity: calc(0.24 - var(--immersion-level) * 0.18);
+}
+
+/* Caret pulse intensifies — both the glow strength and the brightness ramp.
+   Composes with the existing caret-pulse keyframe by overriding box-shadow
+   variables it reads, falling back gracefully when the var isn't set. */
+.run-shell-active .typing-caret {
+  box-shadow:
+    0 0 calc(8px + var(--immersion-level) * 14px) rgba(132, 226, 114, calc(0.45 + var(--immersion-level) * 0.4)),
+    0 0 calc(2px + var(--immersion-level) * 4px) rgba(216, 255, 211, calc(0.5 + var(--immersion-level) * 0.3));
+  transition: box-shadow 220ms ease;
+}
+
+/* Snippet color saturation tightens slightly — the past-typed text gets a
+   subtle lift so flow feedback is stronger as you go. */
+.run-shell-active .snippet-current {
+  filter: saturate(calc(1 + var(--immersion-level) * 0.25))
+          contrast(calc(1 + var(--immersion-level) * 0.08));
+  transition: filter 280ms ease;
+}
+
+/* Error snap-back: brief zoom-out + caret flicker + audio dip cue (the actual
+   audio dip is a side effect of the streak resetting, since gain follows
+   intensity). Trigger via the same data-error-token pattern as the shake. */
+.run-shell-active[data-error-token]:not([data-error-token="0"]) {
+  animation: run-shell-error-shake 80ms ease-out, run-shell-snap-back 220ms ease-out;
+}
+
+@keyframes run-shell-snap-back {
+  0%   { transform: scale(1); filter: brightness(1); }
+  35%  { transform: scale(0.992); filter: brightness(0.78); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Reduced-motion: keep the visual escalation tame but kill the snap-back
+   shake so motion-sensitive users aren't punished for errors. */
+@media (prefers-reduced-motion: reduce) {
+  .run-shell-active[data-error-token]:not([data-error-token="0"]),
+  .run-shell[data-error-token]:not([data-error-token="0"]) {
+    animation: none;
+  }
+  .run-shell-active::before {
+    transition: none;
   }
 }

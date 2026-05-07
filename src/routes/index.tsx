@@ -3,20 +3,33 @@ import { useEffect, useState } from 'react'
 import { createServerFn } from '@tanstack/react-start'
 
 import { AuthChip } from '#/components/auth/auth-chip'
+import { SettingsButton } from '#/components/settings-button'
+import { SettingsDrawer } from '#/components/settings-drawer'
+import {
+  DEFAULT_DIFFICULTY,
+  difficultyPresets,
+  isDifficultyPreset,
+  PRESET_TOOLTIPS,
+  type DifficultyPreset,
+} from '#/lib/game/difficulty'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { loadLocalBestScores, loadStoredPreferences, saveStoredPreferences } from '#/lib/game/storage'
 import { languages } from '#/lib/game/types'
 import type { LanguageId, LocalBestScore } from '#/lib/game/types'
-import { getLeaderboardPreview, type LeaderboardEntry } from '#/server/leaderboard'
+import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
   return getLeaderboardPreview(5)
 })
 
 export const Route = createFileRoute('/')({
-  validateSearch: (search) => ({
-    language: isSupportedLanguage(search.language) ? search.language : undefined,
-  }),
+  // Only emit the `language` key when it's a real value — returning
+  // `{ language: undefined }` makes TanStack Router's stringifier drop it
+  // and round-trip to `{}`, which fails the route-shape consistency check
+  // and emits the "Generated path / for route __root__ did not match after
+  // params.stringify" warning.
+  validateSearch: (search) =>
+    isSupportedLanguage(search.language) ? { language: search.language } : {},
   loader: async () => ({
     leaderboard: await getLeaderboardPreviewServerFn(),
   }),
@@ -27,7 +40,9 @@ function Home() {
   const search = Route.useSearch()
   const { leaderboard } = Route.useLoaderData()
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(search.language ?? 'javascript')
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
   const [localBestScores, setLocalBestScores] = useState<Partial<Record<LanguageId, LocalBestScore>>>({})
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const selectedLeaderboard = leaderboard[selectedLanguage] ?? []
 
@@ -35,6 +50,9 @@ function Home() {
     const preferences = loadStoredPreferences()
     const fallbackLanguage = search.language ?? preferences?.lastLanguage ?? 'javascript'
     setSelectedLanguage(fallbackLanguage)
+    if (isDifficultyPreset(preferences?.difficultyPreset)) {
+      setSelectedDifficulty(preferences.difficultyPreset)
+    }
     setLocalBestScores(loadLocalBestScores())
   }, [search.language])
 
@@ -42,11 +60,24 @@ function Home() {
     saveStoredPreferences({ lastLanguage: selectedLanguage })
   }, [selectedLanguage])
 
+  function handleDifficultyChange(next: DifficultyPreset) {
+    setSelectedDifficulty(next)
+    saveStoredPreferences({ difficultyPreset: next })
+  }
+
   return (
     <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-      <div className="flex justify-end pb-4">
+      <div className="flex items-center justify-end gap-3 pb-4">
+        <SettingsButton onClick={() => setSettingsOpen(true)} />
         <AuthChip />
       </div>
+
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        difficulty={selectedDifficulty}
+        onDifficultyChange={handleDifficultyChange}
+      />
       <section className="hero-grid gap-8">
         <div className="space-y-6">
           <div className="space-y-3">
@@ -60,7 +91,7 @@ function Home() {
             </p>
           </div>
 
-          <div className="panel scan-lines max-w-2xl overflow-hidden">
+          <div className="panel scan-lines max-w-2xl">
             <div className="terminal-header">
               <div className="terminal-dots text-[var(--color-accent)]">
                 <span />
@@ -84,6 +115,26 @@ function Home() {
                         onClick={() => setSelectedLanguage(language)}
                       >
                         {language}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="eyebrow text-[var(--color-muted)]">difficulty</p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {difficultyPresets.map((preset) => {
+                    const active = preset === selectedDifficulty
+
+                    return (
+                      <button
+                        key={preset}
+                        className={`has-tooltip ${active ? 'button-primary' : 'button-secondary'}`}
+                        data-tooltip={PRESET_TOOLTIPS[preset]}
+                        onClick={() => handleDifficultyChange(preset)}
+                      >
+                        {preset}
                       </button>
                     )
                   })}

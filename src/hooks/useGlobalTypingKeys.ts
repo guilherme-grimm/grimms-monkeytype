@@ -10,7 +10,9 @@ type Callbacks = {
   focusInput: () => void
   onPrintable: (next: string) => void
   onTab: () => void
-  onSpaceRestart: () => void
+  onEscapeReset: () => void
+  onSpaceReplay: () => void
+  onEnterNextSnippet: () => void
 }
 
 export function useGlobalTypingKeys(callbacks: Callbacks) {
@@ -28,7 +30,13 @@ export function useGlobalTypingKeys(callbacks: Callbacks) {
       if (current.status === 'finished') {
         if (event.key === ' ') {
           event.preventDefault()
-          current.onSpaceRestart()
+          current.onSpaceReplay()
+          return
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          current.onEnterNextSnippet()
+          return
         }
 
         return
@@ -38,6 +46,12 @@ export function useGlobalTypingKeys(callbacks: Callbacks) {
         event.preventDefault()
         current.focusInput()
         current.onTab()
+        return
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        current.onEscapeReset()
         return
       }
 
