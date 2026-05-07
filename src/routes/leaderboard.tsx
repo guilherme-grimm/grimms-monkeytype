@@ -1,10 +1,12 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { languages, type LanguageId } from '#/lib/game/types'
-import { getLeaderboardByLanguage } from '#/server/leaderboard'
+import { auth } from '#/server/auth'
+import { getLeaderboardByLanguage, getUserBestRank, type UserRank } from '#/server/leaderboard'
 
 const getLeaderboardByLanguageServerFn = createServerFn({ method: 'GET' })
   .inputValidator((data: { language: LanguageId }) => data)
@@ -12,20 +14,36 @@ const getLeaderboardByLanguageServerFn = createServerFn({ method: 'GET' })
     return getLeaderboardByLanguage(data.language, 25)
   })
 
+const getMyRankServerFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: { language: LanguageId }) => data)
+  .handler(async ({ data }): Promise<UserRank | null> => {
+    const request = getRequest()
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) return null
+    return getUserBestRank(session.user.id, data.language)
+  })
+
 export const Route = createFileRoute('/leaderboard')({
   validateSearch: (search) => ({
     language: isSupportedLanguage(search.language) ? search.language : 'javascript',
   }),
   loaderDeps: ({ search }) => ({ language: search.language }),
-  loader: async ({ deps }) => ({
-    entries: await getLeaderboardByLanguageServerFn({ data: { language: deps.language } }),
-  }),
+  loader: async ({ deps }) => {
+    const [entries, myRank] = await Promise.all([
+      getLeaderboardByLanguageServerFn({ data: { language: deps.language } }),
+      getMyRankServerFn({ data: { language: deps.language } }),
+    ])
+    return { entries, myRank }
+  },
   component: LeaderboardPage,
 })
 
 function LeaderboardPage() {
   const { language } = Route.useSearch()
-  const { entries } = Route.useLoaderData()
+  const { entries, myRank } = Route.useLoaderData()
+
+  const selfId = myRank?.entry.userId ?? null
+  const showRankFooter = myRank !== null && myRank.rank > entries.length
 
   return (
     <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10">
@@ -50,6 +68,7 @@ function LeaderboardPage() {
               <h1 className="text-3xl font-semibold terminal-text sm:text-4xl">Leaderboard</h1>
               <p className="max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
                 All-time best runs per coder, per language. GitHub login is required to appear here.
+                Difficulty multiplier is baked into the score — Hard runs ×1.25, Normal ×1.00, Easy ×0.85.
               </p>
             </div>
 
@@ -88,28 +107,12 @@ function LeaderboardPage() {
             <div className="grid gap-3">
               {entries.length > 0 ? (
                 entries.map((entry, index) => (
-                  <article key={`${entry.language}-${entry.userId}`} className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="eyebrow text-[var(--color-muted)]">#{index + 1}</p>
-                        <div className="mt-2 flex items-center gap-3">
-                          {entry.userImage ? (
-                            <img src={entry.userImage} alt="" className="h-10 w-10 rounded-sm border border-[var(--color-border-soft)]" referrerPolicy="no-referrer" />
-                          ) : null}
-                          <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold text-[var(--color-text-strong)]">{entry.userName}</p>
-                            <p className="mt-1 text-sm text-[var(--color-muted)]">
-                              {entry.wpm.toFixed(1)} wpm • {entry.accuracy.toFixed(1)}% accuracy • {entry.snippetsCompleted} snippets
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-3xl font-semibold terminal-text">{entry.score}</p>
-                      </div>
-                    </div>
-                  </article>
+                  <LeaderboardRow
+                    key={`${entry.language}-${entry.userId}`}
+                    rank={index + 1}
+                    entry={entry}
+                    isSelf={entry.userId === selfId}
+                  />
                 ))
               ) : (
                 <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4 text-sm text-[var(--color-muted)]">
@@ -117,9 +120,69 @@ function LeaderboardPage() {
                 </article>
               )}
             </div>
+
+            {showRankFooter && myRank ? (
+              <div className="mt-6 border-t border-dashed border-[var(--color-border-soft)] pt-4">
+                <p className="eyebrow text-[var(--color-muted)] mb-3">your standing</p>
+                <LeaderboardRow rank={myRank.rank} entry={myRank.entry} isSelf />
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
     </main>
+  )
+}
+
+type LeaderboardRowProps = {
+  rank: number
+  entry: import('#/server/leaderboard').LeaderboardEntry
+  isSelf: boolean
+}
+
+function LeaderboardRow({ rank, entry, isSelf }: LeaderboardRowProps) {
+  return (
+    <article
+      className={`pixel-border px-4 py-4 ${
+        isSelf
+          ? 'bg-[rgba(132,226,114,0.08)] outline outline-1 outline-[rgba(132,226,114,0.5)]'
+          : 'bg-[rgba(255,255,255,0.03)]'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="eyebrow text-[var(--color-muted)]">
+            #{rank}
+            {isSelf ? <span className="ml-2 text-[var(--color-accent-glow)]">you</span> : null}
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            {entry.userImage ? (
+              <img
+                src={entry.userImage}
+                alt=""
+                className="h-10 w-10 rounded-sm border border-[var(--color-border-soft)]"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold text-[var(--color-text-strong)]">{entry.userName}</p>
+              <p className="mt-1 text-sm text-[var(--color-muted)]">
+                {entry.wpm.toFixed(1)} wpm • {entry.accuracy.toFixed(1)}% accuracy • {entry.snippetsCompleted} snippets
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+                {entry.mode} <span className="text-[var(--color-text-strong)]">×{entry.multiplier.toFixed(2)}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 whitespace-nowrap text-right">
+          <p className="text-3xl font-semibold terminal-text">{entry.score}</p>
+          <p className="mt-1 text-xs text-[var(--color-muted)]">
+            base {entry.baseScore}
+          </p>
+        </div>
+      </div>
+    </article>
   )
 }

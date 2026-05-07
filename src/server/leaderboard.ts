@@ -87,3 +87,34 @@ export async function getLeaderboardByLanguage(language: LanguageId, limit = 25)
 
   return dedupeByUser(rows as Array<LeaderboardEntry>, limit)
 }
+
+// Hardcap on the rank scan — well above any realistic player count for this
+// app, but bounded so a runaway DB can't trigger a giant query.
+const RANK_SCAN_CAP = 2000
+
+export type UserRank = {
+  rank: number
+  entry: LeaderboardEntry
+}
+
+// Returns the user's best entry for `language` plus their global rank, using
+// the same ordering + dedupe rules as `getLeaderboardByLanguage`. Rank is
+// 1-indexed. Null if the user has no scored runs in this language.
+export async function getUserBestRank(
+  userId: string,
+  language: LanguageId,
+): Promise<UserRank | null> {
+  const rows = await db
+    .select(projection)
+    .from(bestScore)
+    .innerJoin(user, eq(bestScore.userId, user.id))
+    .innerJoin(score, eq(bestScore.scoreId, score.id))
+    .where(eq(bestScore.language, language))
+    .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
+    .limit(RANK_SCAN_CAP)
+
+  const deduped = dedupeByUser(rows as Array<LeaderboardEntry>, RANK_SCAN_CAP)
+  const index = deduped.findIndex((entry) => entry.userId === userId)
+  if (index === -1) return null
+  return { rank: index + 1, entry: deduped[index] }
+}
