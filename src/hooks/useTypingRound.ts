@@ -8,7 +8,7 @@ import {
 } from '#/lib/game/difficulty'
 import { getLeadingIndentWidth } from '#/lib/game/indentation'
 import { normalizeSnippet, sanitizeTypedValue } from '#/lib/game/normalization'
-import { calculateRoundMetrics, isSnippetComplete } from '#/lib/game/scoring'
+import { calculateRoundMetrics, consumeSnippetInput } from '#/lib/game/scoring'
 import {
   getDailyStarter,
   getInitialSnippet,
@@ -136,9 +136,12 @@ export function useTypingRound({
   // user hasn't touched settings.
   const immersionPrefs = useImmersionPrefs()
 
+  function rememberSnippetId(history: Array<string>, id: string) {
+    return [id, ...history.filter((existing) => existing !== id)].slice(0, 3)
+  }
+
   function rememberSnippet(id: string) {
-    const next = [id, ...recentSnippetIdsRef.current.filter((existing) => existing !== id)]
-    recentSnippetIdsRef.current = next.slice(0, 3)
+    recentSnippetIdsRef.current = rememberSnippetId(recentSnippetIdsRef.current, id)
   }
 
   // The reset-on-language/difficulty-change effect below should NOT fire on
@@ -282,23 +285,56 @@ export function useTypingRound({
     }
 
     if (nextValue.length > previousValue.length) {
-      const appendedValue = nextValue.slice(previousValue.length)
-      let nextCorrectChars = correctChars
-      let nextIncorrectChars = incorrectChars
-      let runningStreak = correctStreak
+      let workingTypedValue = nextValue
+      let workingPreviousValueLength = previousValue.length
+      let workingCurrentRawSnippet = currentRawSnippet
+      let workingCurrentSnippet = currentSnippet
+      let workingUpcomingRawSnippet = upcomingRawSnippet
+      let workingCorrectChars = correctChars
+      let workingIncorrectChars = incorrectChars
+      let workingCorrectStreak = correctStreak
       let sawError = false
+      let snippetsAdvanced = 0
+      let workingRecentSnippetIds = recentSnippetIdsRef.current
 
-      for (let index = 0; index < appendedValue.length; index += 1) {
-        const targetIndex = previousValue.length + index
-        const targetChar = currentSnippet.normalized[targetIndex]
+      while (true) {
+        const step = consumeSnippetInput({
+          typedValue: workingTypedValue,
+          previousValueLength: workingPreviousValueLength,
+          target: workingCurrentSnippet.normalized,
+          correctChars: workingCorrectChars,
+          incorrectChars: workingIncorrectChars,
+          correctStreak: workingCorrectStreak,
+        })
 
-        if (appendedValue[index] === targetChar) {
-          nextCorrectChars += 1
-          runningStreak += 1
-        } else {
-          nextIncorrectChars += 1
-          runningStreak = 0
-          sawError = true
+        workingCorrectChars = step.correctChars
+        workingIncorrectChars = step.incorrectChars
+        workingCorrectStreak = step.correctStreak
+        sawError ||= step.sawError
+
+        if (!step.complete) {
+          workingTypedValue = step.remainder
+          break
+        }
+
+        snippetsAdvanced += 1
+        workingTypedValue = step.remainder
+        workingPreviousValueLength = 0
+
+        // Advance immediately within the same input event so fast typing and
+        // paste carry straight into the next snippet instead of dead-ending.
+        const nextSnippet = isSkeletonSnippet(workingUpcomingRawSnippet)
+          ? getRandomSnippet(language, workingRecentSnippetIds)
+          : workingUpcomingRawSnippet
+        workingRecentSnippetIds = rememberSnippetId(workingRecentSnippetIds, nextSnippet.id)
+        const nextUpcomingSnippet = getRandomSnippet(language, workingRecentSnippetIds)
+
+        workingCurrentRawSnippet = nextSnippet
+        workingCurrentSnippet = normalizeSnippet(nextSnippet, flags)
+        workingUpcomingRawSnippet = nextUpcomingSnippet
+
+        if (workingTypedValue.length === 0) {
+          break
         }
       }
 
@@ -307,9 +343,9 @@ export function useTypingRound({
         // immersion ramp 1:1. Curve params are dev-tunable; gain ceiling and
         // error thunk are user-tunable.
         const denom = Math.max(1, debug.curveDenominator)
-        const runningIntensity = Math.min(1, Math.pow(runningStreak / denom, debug.curveExponent))
+        const runningIntensity = Math.min(1, Math.pow(workingCorrectStreak / denom, debug.curveExponent))
         const gainCeiling = immersionPrefs.audioGainEscalation ? immersionPrefs.audioGainCeiling : 0
-        void typingSoundRef.current.play(runningStreak, runningIntensity, gainCeiling)
+        void typingSoundRef.current.play(workingCorrectStreak, runningIntensity, gainCeiling)
         // Audible counterpart to the visual snap-back: short low thump on the
         // keystroke that broke the streak. Layered *after* the regular tone so
         // the error click + thump arrive together.
@@ -318,36 +354,34 @@ export function useTypingRound({
         }
       }
 
-      setCorrectChars(nextCorrectChars)
-      setIncorrectChars(nextIncorrectChars)
-      setCorrectStreak(runningStreak)
+      setCorrectChars(workingCorrectChars)
+      setIncorrectChars(workingIncorrectChars)
+      setCorrectStreak(workingCorrectStreak)
       if (sawError) {
         setErrorPulseToken((value) => value + 1)
       }
+
+      // Backspace doesn't refund mistakes, but the next append diff must start
+      // from whatever remainder survived after crossing snippet boundaries.
+      previousInputRef.current = workingTypedValue
+      setTypedValue(workingTypedValue)
+
+      if (snippetsAdvanced > 0) {
+        recentSnippetIdsRef.current = workingRecentSnippetIds
+        setSnippetsCompleted((value) => value + snippetsAdvanced)
+        setSnippetClearedToken((value) => value + snippetsAdvanced)
+        setCurrentRawSnippet(workingCurrentRawSnippet)
+        setUpcomingRawSnippet(workingUpcomingRawSnippet)
+        onSnippetAdvance()
+      }
+
+      return
     }
 
     // Backspace: don't refund mistakes, but resync the previous-input cursor
     // so a re-type of corrected chars isn't double-counted on the next append.
     previousInputRef.current = nextValue
     setTypedValue(nextValue)
-
-    if (isSnippetComplete(nextValue, currentSnippet.normalized)) {
-      // Defensive: if the user somehow finished before the mount effect
-      // populated upcoming, draw a real one instead of advancing into the
-      // skeleton sentinel.
-      const nextSnippet = isSkeletonSnippet(upcomingRawSnippet)
-        ? getRandomSnippet(language, recentSnippetIdsRef.current)
-        : upcomingRawSnippet
-      rememberSnippet(nextSnippet.id)
-      const nextUpcomingSnippet = getRandomSnippet(language, recentSnippetIdsRef.current)
-      previousInputRef.current = ''
-      setSnippetsCompleted((value) => value + 1)
-      setSnippetClearedToken((value) => value + 1)
-      setCurrentRawSnippet(nextSnippet)
-      setUpcomingRawSnippet(nextUpcomingSnippet)
-      setTypedValue('')
-      onSnippetAdvance()
-    }
   }
 
   function consumeIndentationWithTab() {

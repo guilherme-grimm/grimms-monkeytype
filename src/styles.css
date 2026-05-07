@@ -535,29 +535,6 @@ button {
   100% { color: rgba(216, 255, 211, 0.86); border-color: rgba(132, 226, 114, 0.35); }
 }
 
-/* L2 reactions: snippet-cleared CRT sweep across the run shell */
-.run-shell[data-cleared-token]:not([data-cleared-token="0"])::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(132, 226, 114, 0) 35%,
-    rgba(132, 226, 114, 0.18) 50%,
-    rgba(132, 226, 114, 0) 65%,
-    transparent 100%
-  );
-  animation: run-shell-sweep 360ms ease-out;
-}
-
-@keyframes run-shell-sweep {
-  0%   { opacity: 0; transform: translateX(-100%); }
-  20%  { opacity: 1; }
-  100% { opacity: 0; transform: translateX(100%); }
-}
-
 /* === L3 reactions: rank badge + PB callout === */
 .rank-badge-wrap {
   display: flex;

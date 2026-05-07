@@ -15,8 +15,77 @@ export function countMatchingPrefix(typed: string, target: string) {
   return index
 }
 
+export function scoreAppendedChars(input: {
+  appendedValue: string
+  previousValueLength: number
+  target: string
+  correctChars: number
+  incorrectChars: number
+  correctStreak: number
+}) {
+  let nextCorrectChars = input.correctChars
+  let nextIncorrectChars = input.incorrectChars
+  let runningStreak = input.correctStreak
+  let sawError = false
+
+  for (let index = 0; index < input.appendedValue.length; index += 1) {
+    const targetIndex = input.previousValueLength + index
+
+    // Stop scoring chars typed past the snippet's last position — those are
+    // overshoot from a fast keystroke landing the user past the end, not a
+    // wrong answer to a real target.
+    if (targetIndex >= input.target.length) break
+
+    if (input.appendedValue[index] === input.target[targetIndex]) {
+      nextCorrectChars += 1
+      runningStreak += 1
+    } else {
+      nextIncorrectChars += 1
+      runningStreak = 0
+      sawError = true
+    }
+  }
+
+  return {
+    correctChars: nextCorrectChars,
+    incorrectChars: nextIncorrectChars,
+    correctStreak: runningStreak,
+    sawError,
+  }
+}
+
+export function consumeSnippetInput(input: {
+  typedValue: string
+  previousValueLength: number
+  target: string
+  correctChars: number
+  incorrectChars: number
+  correctStreak: number
+}) {
+  const appendedValue = input.typedValue.slice(input.previousValueLength)
+  const score = scoreAppendedChars({
+    appendedValue,
+    previousValueLength: input.previousValueLength,
+    target: input.target,
+    correctChars: input.correctChars,
+    incorrectChars: input.incorrectChars,
+    correctStreak: input.correctStreak,
+  })
+  const complete = isSnippetComplete(input.typedValue, input.target)
+
+  return {
+    ...score,
+    complete,
+    remainder: complete ? input.typedValue.slice(input.target.length) : input.typedValue,
+  }
+}
+
+// Snippet completion is boundary-based, not accuracy-based: once the player
+// has consumed at least `target.length` chars, the next snippet should become
+// active immediately. Correctness is already tracked per keystroke; blocking
+// advancement on a mismatch dead-ends the survival loop on the current snippet.
 export function isSnippetComplete(typed: string, target: string) {
-  return typed === target
+  return typed.length >= target.length
 }
 
 export function calculateRoundMetrics(input: {
