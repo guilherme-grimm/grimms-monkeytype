@@ -2,50 +2,50 @@ import { languages } from './types'
 import type { LanguageId, Snippet } from './types'
 
 const snippetModules = import.meta.glob<{ default: Array<Snippet> }>(
-  '../../../data/snippets/*.json',
-  { eager: true },
+	'../../../snippets/*.json',
+	{ eager: true },
 )
 
 function buildSnippetIndex(): Record<LanguageId, Array<Snippet>> {
-  const byLanguage = {} as Record<LanguageId, Array<Snippet>>
+	const byLanguage = {} as Record<LanguageId, Array<Snippet>>
 
-  for (const language of languages) {
-    byLanguage[language] = []
-  }
+	for (const language of languages) {
+		byLanguage[language] = []
+	}
 
-  for (const [path, module] of Object.entries(snippetModules)) {
-    const filename = path.split('/').pop() ?? ''
-    const language = filename.replace(/\.json$/, '') as LanguageId
+	for (const [path, module] of Object.entries(snippetModules)) {
+		const filename = path.split('/').pop() ?? ''
+		const language = filename.replace(/\.json$/, '') as LanguageId
 
-    if (!languages.includes(language)) {
-      continue
-    }
+		if (!languages.includes(language)) {
+			continue
+		}
 
-    byLanguage[language] = module.default
-  }
+		byLanguage[language] = module.default
+	}
 
-  return byLanguage
+	return byLanguage
 }
 
 const rawSnippets = buildSnippetIndex()
 
 export function getSnippetsForLanguage(language: LanguageId): Array<Snippet> {
-  return rawSnippets[language]
+	return rawSnippets[language]
 }
 
 // Pick a random snippet from the language pool, excluding any IDs the caller
 // just played. Falls back to the full pool if the exclusion list eats every
 // candidate (e.g. tiny pools, or after a series of resets).
 export function getRandomSnippet(
-  language: LanguageId,
-  excludeIds: ReadonlyArray<string> = [],
+	language: LanguageId,
+	excludeIds: ReadonlyArray<string> = [],
 ): Snippet {
-  const all = rawSnippets[language]
-  const candidates = excludeIds.length === 0
-    ? all
-    : all.filter((snippet) => !excludeIds.includes(snippet.id))
-  const pool = candidates.length > 0 ? candidates : all
-  return pool[Math.floor(Math.random() * pool.length)]
+	const all = rawSnippets[language]
+	const candidates = excludeIds.length === 0
+		? all
+		: all.filter((snippet) => !excludeIds.includes(snippet.id))
+	const pool = candidates.length > 0 ? candidates : all
+	return pool[Math.floor(Math.random() * pool.length)]
 }
 
 // Stable first-snippet pick — same on server and client (no Math.random,
@@ -58,11 +58,11 @@ export function getRandomSnippet(
 // hydration mismatch warning or a visible content flash as the client
 // re-renders with its own random pick. Day-based indexing dodges both.
 function hashLanguage(language: string) {
-  let hash = 0
-  for (let index = 0; index < language.length; index += 1) {
-    hash = (hash * 31 + language.charCodeAt(index)) | 0
-  }
-  return Math.abs(hash)
+	let hash = 0
+	for (let index = 0; index < language.length; index += 1) {
+		hash = (hash * 31 + language.charCodeAt(index)) | 0
+	}
+	return Math.abs(hash)
 }
 
 // Sentinel snippet used as the "upcoming" placeholder before a real pick has
@@ -73,32 +73,32 @@ function hashLanguage(language: string) {
 export const SKELETON_SNIPPET_ID = '__skeleton__'
 
 export function makeSkeletonSnippet(language: LanguageId): Snippet {
-  return { id: SKELETON_SNIPPET_ID, language, source: '' }
+	return { id: SKELETON_SNIPPET_ID, language, source: '' }
 }
 
 export function isSkeletonSnippet(snippet: Snippet): boolean {
-  return snippet.id === SKELETON_SNIPPET_ID
+	return snippet.id === SKELETON_SNIPPET_ID
 }
 
 export function getDailyStarter(language: LanguageId): Snippet {
-  const pool = rawSnippets[language]
-  if (pool.length === 0) return pool[0]
-  const dayIndex = Math.floor(Date.now() / 86_400_000)
-  const offset = (dayIndex + hashLanguage(language)) % pool.length
-  return pool[offset]
+	const pool = rawSnippets[language]
+	if (pool.length === 0) return pool[0]
+	const dayIndex = Math.floor(Date.now() / 86_400_000)
+	const offset = (dayIndex + hashLanguage(language)) % pool.length
+	return pool[offset]
 }
 
 // Random initial snippet — call this from effects/handlers, never during
 // render directly (would hydration-mismatch).
 export function getInitialSnippet(language: LanguageId): Snippet {
-  return getRandomSnippet(language)
+	return getRandomSnippet(language)
 }
 
 // Random next snippet, excluding whatever the caller just played plus any
 // recent history they want to avoid repeating.
 export function getFollowingSnippet(
-  language: LanguageId,
-  excludeIds: ReadonlyArray<string>,
+	language: LanguageId,
+	excludeIds: ReadonlyArray<string>,
 ): Snippet {
-  return getRandomSnippet(language, excludeIds)
+	return getRandomSnippet(language, excludeIds)
 }

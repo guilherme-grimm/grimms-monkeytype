@@ -1,0 +1,52 @@
+[
+  {
+    "id": "kotlin-1",
+    "language": "kotlin",
+    "source": "data class User(val name: String, val isOnline: Boolean, val lastSeenAt: Instant)\n\nfun collectActiveUsers(users: List<User>, cutoff: Instant): List<String> {\n    return users\n        .filter { it.isOnline && it.lastSeenAt > cutoff }\n        .map { it.name }\n}"
+  },
+  {
+    "id": "kotlin-2",
+    "language": "kotlin",
+    "source": "fun clampScore(score: Int, minimum: Int, maximum: Int): Int {\n    return when {\n        score < minimum -> minimum\n        score > maximum -> maximum\n        else -> score\n    }\n}"
+  },
+  {
+    "id": "kotlin-3",
+    "language": "kotlin",
+    "source": "fun groupPostsByTag(posts: List<Post>): Map<String, List<String>> {\n    return posts\n        .flatMap { post -> post.tags.map { tag -> tag to post.slug } }\n        .groupBy({ it.first }, { it.second })\n}"
+  },
+  {
+    "id": "kotlin-4",
+    "language": "kotlin",
+    "source": "suspend fun loadProjectSummary(client: HttpClient, projectId: String): String {\n    val response = client.get(\"/api/projects/$projectId\")\n\n    if (!response.status.isSuccess()) {\n        throw IllegalStateException(\"Failed to load project summary\")\n    }\n\n    val project = response.body<Project>()\n    return \"${project.name}:${project.branch}\".lowercase()\n}"
+  },
+  {
+    "id": "kotlin-5",
+    "language": "kotlin",
+    "source": "sealed interface RouteLanguage {\n    object Kotlin : RouteLanguage\n    object Java : RouteLanguage\n    object Python : RouteLanguage\n}\n\nfun parseLanguage(value: String?): RouteLanguage = when (value) {\n    \"kotlin\" -> RouteLanguage.Kotlin\n    \"java\" -> RouteLanguage.Java\n    \"python\" -> RouteLanguage.Python\n    else -> RouteLanguage.Kotlin\n}"
+  },
+  {
+    "id": "kotlin-6",
+    "language": "kotlin",
+    "source": "fun String.toSlug(): String {\n    return this.trim()\n        .lowercase()\n        .replace(Regex(\"[^a-z0-9]+\"), \"-\")\n        .trim('-')\n}\n\nval slug = \"  Hello, World!  \".toSlug()"
+  },
+  {
+    "id": "kotlin-7",
+    "language": "kotlin",
+    "source": "inline fun <T> tryCatching(block: () -> T): Result<T> {\n    return try {\n        Result.success(block())\n    } catch (error: Throwable) {\n        Result.failure(error)\n    }\n}\n\nval parsed = tryCatching { Json.decodeFromString<Config>(raw) }"
+  },
+  {
+    "id": "kotlin-8",
+    "language": "kotlin",
+    "source": "class ScoreBuilder {\n    private var name: String = \"anon\"\n    private var value: Int = 0\n\n    fun named(name: String) = apply { this.name = name }\n    fun worth(value: Int) = apply { this.value = value }\n    fun build() = Score(name = name, value = value)\n}\n\nval score = ScoreBuilder().named(\"ada\").worth(120).build()"
+  },
+  {
+    "id": "kotlin-9",
+    "language": "kotlin",
+    "source": "class ConfigStore(private val path: Path) {\n    val config: Config by lazy {\n        Files.readString(path).let { raw ->\n            Json.decodeFromString<Config>(raw)\n        }\n    }\n}"
+  },
+  {
+    "id": "kotlin-10",
+    "language": "kotlin",
+    "source": "fun chunked(items: List<Int>, size: Int): List<List<Int>> {\n    require(size > 0) { \"size must be positive\" }\n\n    return items.windowed(size = size, step = size, partialWindows = true)\n}\n\nval batches = chunked((1..10).toList(), 3)"
+  }
+]

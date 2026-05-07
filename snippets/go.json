@@ -1,0 +1,52 @@
+[
+  {
+    "id": "go-1",
+    "language": "go",
+    "source": "func collectActiveUsers(users []User, cutoff time.Time) []string {\n    activeUsers := make([]string, 0, len(users))\n\n    for _, user := range users {\n        if !user.IsOnline || !user.LastSeenAt.After(cutoff) {\n            continue\n        }\n\n        activeUsers = append(activeUsers, user.Name)\n    }\n\n    return activeUsers\n}"
+  },
+  {
+    "id": "go-2",
+    "language": "go",
+    "source": "func clampScore(score, min, max int) int {\n    if score < min {\n        return min\n    }\n\n    if score > max {\n        return max\n    }\n\n    return score\n}"
+  },
+  {
+    "id": "go-3",
+    "language": "go",
+    "source": "func buildSummary(project Project) (string, error) {\n    if project.Name == \"\" {\n        return \"\", fmt.Errorf(\"missing project name\")\n    }\n\n    summary := strings.ToLower(project.Name + \":\" + project.Branch)\n    summary = strings.ReplaceAll(summary, \" \", \"-\")\n\n    return summary, nil\n}"
+  },
+  {
+    "id": "go-4",
+    "language": "go",
+    "source": "func topScores(entries []Entry) []Entry {\n    ranked := slices.Clone(entries)\n\n    slices.SortFunc(ranked, func(left, right Entry) int {\n        return right.Score - left.Score\n    })\n\n    return ranked[:min(5, len(ranked))]\n}"
+  },
+  {
+    "id": "go-5",
+    "language": "go",
+    "source": "func groupPostsByTag(posts []Post) map[string][]string {\n    grouped := make(map[string][]string)\n\n    for _, post := range posts {\n        for _, tag := range post.Tags {\n            grouped[tag] = append(grouped[tag], post.Slug)\n        }\n    }\n\n    return grouped\n}"
+  },
+  {
+    "id": "go-6",
+    "language": "go",
+    "source": "func loadConfig(path string) (Config, error) {\n    data, err := os.ReadFile(path)\n    if err != nil {\n        return Config{}, fmt.Errorf(\"read config: %w\", err)\n    }\n\n    var config Config\n    if err := json.Unmarshal(data, &config); err != nil {\n        return Config{}, fmt.Errorf(\"parse config: %w\", err)\n    }\n\n    return config, nil\n}"
+  },
+  {
+    "id": "go-7",
+    "language": "go",
+    "source": "func fetchWithTimeout(ctx context.Context, url string) ([]byte, error) {\n    ctx, cancel := context.WithTimeout(ctx, 5*time.Second)\n    defer cancel()\n\n    request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)\n    if err != nil {\n        return nil, err\n    }\n\n    response, err := http.DefaultClient.Do(request)\n    if err != nil {\n        return nil, err\n    }\n    defer response.Body.Close()\n\n    return io.ReadAll(response.Body)\n}"
+  },
+  {
+    "id": "go-8",
+    "language": "go",
+    "source": "func runWorkers(jobs []Job) []Result {\n    results := make([]Result, len(jobs))\n    var wg sync.WaitGroup\n\n    for index, job := range jobs {\n        wg.Add(1)\n        go func(i int, j Job) {\n            defer wg.Done()\n            results[i] = j.Execute()\n        }(index, job)\n    }\n\n    wg.Wait()\n    return results\n}"
+  },
+  {
+    "id": "go-9",
+    "language": "go",
+    "source": "type Counter struct {\n    mu    sync.Mutex\n    value int\n}\n\nfunc (c *Counter) Increment() {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    c.value++\n}\n\nfunc (c *Counter) Value() int {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    return c.value\n}"
+  },
+  {
+    "id": "go-10",
+    "language": "go",
+    "source": "func uniqueStrings(values []string) []string {\n    seen := make(map[string]struct{}, len(values))\n    unique := make([]string, 0, len(values))\n\n    for _, value := range values {\n        if _, exists := seen[value]; exists {\n            continue\n        }\n        seen[value] = struct{}{}\n        unique = append(unique, value)\n    }\n\n    return unique\n}"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ts-1",
+    "language": "typescript",
+    "source": "type ScoreEntry = {\n  name: string\n  score: number\n  accuracy: number\n}\n\nfunction sortScores(entries: Array<ScoreEntry>) {\n  return entries.toSorted((left, right) => right.score - left.score)\n}"
+  },
+  {
+    "id": "ts-2",
+    "language": "typescript",
+    "source": "function pickBest<T extends { score: number }>(items: Array<T>) {\n  const sorted = items.toSorted((left, right) => right.score - left.score)\n\n  if (sorted.length === 0) {\n    return null\n  }\n\n  return sorted[0]\n}"
+  },
+  {
+    "id": "ts-3",
+    "language": "typescript",
+    "source": "interface RouteSearch {\n  language?: 'javascript' | 'typescript' | 'python' | 'go'\n  sound?: 'on' | 'off'\n}\n\nfunction getRouteLanguage(search: RouteSearch) {\n  return search.language ?? 'javascript'\n}"
+  },
+  {
+    "id": "ts-4",
+    "language": "typescript",
+    "source": "export function assertNever(value: never): never {\n  throw new Error(`Unexpected value: ${value}`)\n}\n\nexport function formatScore(value: number) {\n  return `${value.toFixed(0)} cpm`\n}"
+  },
+  {
+    "id": "ts-5",
+    "language": "typescript",
+    "source": "function normalizeValues(values: Array<string | undefined>) {\n  return values\n    .filter(Boolean)\n    .map((value) => value.trim())\n    .filter((value) => value.length > 0)\n}\n\nconst normalized = normalizeValues([' go ', undefined, ' rust '])"
+  },
+  {
+    "id": "ts-6",
+    "language": "typescript",
+    "source": "type Result<T, E = Error> =\n  | { ok: true; value: T }\n  | { ok: false; error: E }\n\nfunction tryParseJson<T>(raw: string): Result<T> {\n  try {\n    return { ok: true, value: JSON.parse(raw) as T }\n  } catch (error) {\n    return { ok: false, error: error as Error }\n  }\n}"
+  },
+  {
+    "id": "ts-7",
+    "language": "typescript",
+    "source": "type Action =\n  | { kind: 'increment'; by: number }\n  | { kind: 'reset' }\n  | { kind: 'set'; value: number }\n\nfunction reduce(state: number, action: Action): number {\n  switch (action.kind) {\n    case 'increment': return state + action.by\n    case 'reset': return 0\n    case 'set': return action.value\n  }\n}"
+  },
+  {
+    "id": "ts-8",
+    "language": "typescript",
+    "source": "function memoize<Args extends Array<unknown>, R>(fn: (...args: Args) => R) {\n  const cache = new Map<string, R>()\n\n  return (...args: Args): R => {\n    const key = JSON.stringify(args)\n\n    if (!cache.has(key)) {\n      cache.set(key, fn(...args))\n    }\n\n    return cache.get(key) as R\n  }\n}"
+  },
+  {
+    "id": "ts-9",
+    "language": "typescript",
+    "source": "function pluck<T, K extends keyof T>(items: ReadonlyArray<T>, key: K): Array<T[K]> {\n  return items.map((item) => item[key])\n}\n\nconst names = pluck([{ id: 1, name: 'Ada' }, { id: 2, name: 'Linus' }], 'name')"
+  },
+  {
+    "id": "ts-10",
+    "language": "typescript",
+    "source": "const HttpStatus = {\n  Ok: 200,\n  Created: 201,\n  BadRequest: 400,\n  Unauthorized: 401,\n  NotFound: 404,\n  ServerError: 500,\n} as const\n\ntype HttpStatus = (typeof HttpStatus)[keyof typeof HttpStatus]\n\nfunction isError(status: HttpStatus) {\n  return status >= 400\n}"
+  }
+]

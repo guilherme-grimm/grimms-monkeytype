@@ -1,0 +1,52 @@
+[
+  {
+    "id": "php-1",
+    "language": "php",
+    "source": "function collectActiveUsers(array $users, DateTimeImmutable $cutoff): array\n{\n    $active = [];\n\n    foreach ($users as $user) {\n        if (!$user->isOnline || $user->lastSeenAt <= $cutoff) {\n            continue;\n        }\n\n        $active[] = $user->name;\n    }\n\n    return $active;\n}"
+  },
+  {
+    "id": "php-2",
+    "language": "php",
+    "source": "class ScoreController extends Controller\n{\n    public function store(Request $request): JsonResponse\n    {\n        $validated = $request->validate([\n            'value' => ['required', 'integer', 'min:0'],\n            'language' => ['required', 'string'],\n        ]);\n\n        $score = $request->user()->scores()->create($validated);\n\n        return response()->json($score, 201);\n    }\n}"
+  },
+  {
+    "id": "php-3",
+    "language": "php",
+    "source": "function groupPostsByTag(iterable $posts): array\n{\n    $grouped = [];\n\n    foreach ($posts as $post) {\n        foreach ($post->tags as $tag) {\n            $grouped[$tag] ??= [];\n            $grouped[$tag][] = $post->slug;\n        }\n    }\n\n    return $grouped;\n}"
+  },
+  {
+    "id": "php-4",
+    "language": "php",
+    "source": "function buildSummary(Project $project): string\n{\n    if (trim($project->name) === '') {\n        throw new InvalidArgumentException('missing project name');\n    }\n\n    $summary = strtolower(\"{$project->name}:{$project->branch}\");\n\n    return str_replace(' ', '-', $summary);\n}"
+  },
+  {
+    "id": "php-5",
+    "language": "php",
+    "source": "function topScores(array $entries, int $limit = 5): array\n{\n    usort($entries, fn ($left, $right) => $right->score <=> $left->score);\n\n    return array_slice(\n        array_filter($entries, fn ($entry) => $entry->score > 0),\n        0,\n        $limit,\n    );\n}"
+  },
+  {
+    "id": "php-6",
+    "language": "php",
+    "source": "enum SubmitStatus: string\n{\n    case Idle = 'idle';\n    case Saving = 'saving';\n    case Saved = 'saved';\n    case Error = 'error';\n\n    public function isTerminal(): bool\n    {\n        return match ($this) {\n            self::Saved, self::Error => true,\n            default => false,\n        };\n    }\n}"
+  },
+  {
+    "id": "php-7",
+    "language": "php",
+    "source": "function loadConfig(string $path): Config\n{\n    if (!is_readable($path)) {\n        throw new RuntimeException(\"cannot read config: {$path}\");\n    }\n\n    $raw = file_get_contents($path);\n    $decoded = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);\n\n    return Config::fromArray($decoded);\n}"
+  },
+  {
+    "id": "php-8",
+    "language": "php",
+    "source": "function clampScore(int $score, int $minimum, int $maximum): int\n{\n    return match (true) {\n        $score < $minimum => $minimum,\n        $score > $maximum => $maximum,\n        default => $score,\n    };\n}"
+  },
+  {
+    "id": "php-9",
+    "language": "php",
+    "source": "function indexBy(iterable $items, callable $keyFn): array\n{\n    $indexed = [];\n\n    foreach ($items as $item) {\n        $indexed[$keyFn($item)] = $item;\n    }\n\n    return $indexed;\n}\n\n$usersById = indexBy($users, fn ($user) => $user->id);"
+  },
+  {
+    "id": "php-10",
+    "language": "php",
+    "source": "function chunked(iterable $items, int $size): Generator\n{\n    if ($size <= 0) {\n        throw new InvalidArgumentException('size must be positive');\n    }\n\n    $batch = [];\n\n    foreach ($items as $item) {\n        $batch[] = $item;\n\n        if (count($batch) === $size) {\n            yield $batch;\n            $batch = [];\n        }\n    }\n\n    if (count($batch) > 0) {\n        yield $batch;\n    }\n}"
+  }
+]

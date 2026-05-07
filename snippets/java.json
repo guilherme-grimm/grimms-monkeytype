@@ -1,0 +1,52 @@
+[
+  {
+    "id": "java-1",
+    "language": "java",
+    "source": "public List<String> collectActiveUsers(List<User> users, Instant cutoff) {\n    List<String> activeUsers = new ArrayList<>();\n\n    for (User user : users) {\n        if (!user.isOnline() || !user.lastSeenAt().isAfter(cutoff)) {\n            continue;\n        }\n\n        activeUsers.add(user.name());\n    }\n\n    return activeUsers;\n}"
+  },
+  {
+    "id": "java-2",
+    "language": "java",
+    "source": "public Map<String, List<String>> groupPostsByTag(List<Post> posts) {\n    Map<String, List<String>> grouped = new HashMap<>();\n\n    for (Post post : posts) {\n        for (String tag : post.tags()) {\n            grouped.computeIfAbsent(tag, key -> new ArrayList<>()).add(post.slug());\n        }\n    }\n\n    return grouped;\n}"
+  },
+  {
+    "id": "java-3",
+    "language": "java",
+    "source": "public String buildSummary(Project project) {\n    if (project.name().isBlank()) {\n        throw new IllegalArgumentException(\"missing project name\");\n    }\n\n    String summary = (project.name() + \":\" + project.branch()).toLowerCase();\n    return summary.replace(\" \", \"-\");\n}"
+  },
+  {
+    "id": "java-4",
+    "language": "java",
+    "source": "public List<ScoreEntry> topScores(List<ScoreEntry> entries) {\n    return entries.stream()\n        .filter(entry -> entry.score() > 0)\n        .sorted(Comparator.comparingInt(ScoreEntry::score).reversed())\n        .limit(5)\n        .toList();\n}"
+  },
+  {
+    "id": "java-5",
+    "language": "java",
+    "source": "public int clampScore(int score, int minimum, int maximum) {\n    if (score < minimum) {\n        return minimum;\n    }\n\n    if (score > maximum) {\n        return maximum;\n    }\n\n    return score;\n}"
+  },
+  {
+    "id": "java-6",
+    "language": "java",
+    "source": "public ScoreEntry pickBest(List<ScoreEntry> entries) {\n    if (entries.isEmpty()) {\n        return null;\n    }\n\n    entries.sort(Comparator.comparingInt(ScoreEntry::score).reversed());\n    return entries.getFirst();\n}"
+  },
+  {
+    "id": "java-7",
+    "language": "java",
+    "source": "public RouteLanguage getRouteLanguage(Map<String, String> search) {\n    String language = search.getOrDefault(\"language\", \"javascript\");\n\n    return switch (language) {\n        case \"java\" -> RouteLanguage.JAVA;\n        case \"python\" -> RouteLanguage.PYTHON;\n        default -> RouteLanguage.JAVASCRIPT;\n    };\n}"
+  },
+  {
+    "id": "java-8",
+    "language": "java",
+    "source": "public List<String> normalizeValues(List<String> values) {\n    return values.stream()\n        .filter(Objects::nonNull)\n        .map(String::trim)\n        .filter(value -> !value.isEmpty())\n        .toList();\n}"
+  },
+  {
+    "id": "java-9",
+    "language": "java",
+    "source": "public Optional<String> primaryEmail(User user) {\n    return user.contactMethods().stream()\n        .filter(method -> method.kind() == ContactKind.EMAIL)\n        .filter(ContactMethod::isVerified)\n        .map(ContactMethod::value)\n        .findFirst();\n}"
+  },
+  {
+    "id": "java-10",
+    "language": "java",
+    "source": "public String readFirstLine(Path path) throws IOException {\n    try (BufferedReader reader = Files.newBufferedReader(path)) {\n        String line = reader.readLine();\n\n        if (line == null) {\n            throw new IOException(\"empty file\");\n        }\n\n        return line.strip();\n    }\n}"
+  }
+]

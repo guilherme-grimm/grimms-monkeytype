@@ -1,0 +1,52 @@
+[
+  {
+    "id": "py-1",
+    "language": "python",
+    "source": "def collect_active_users(users, cutoff):\n    active_users = []\n\n    for user in users:\n        if not user.is_online or user.last_seen_at <= cutoff:\n            continue\n\n        active_users.append(user.name)\n\n    return active_users"
+  },
+  {
+    "id": "py-2",
+    "language": "python",
+    "source": "def clamp(value, minimum, maximum):\n    if value < minimum:\n        return minimum\n\n    if value > maximum:\n        return maximum\n\n    return value"
+  },
+  {
+    "id": "py-3",
+    "language": "python",
+    "source": "def build_summary(project):\n    summary = f\"{project.name}:{project.branch}\"\n    summary = summary.lower().replace(\" \", \"-\")\n\n    if not summary:\n        raise RuntimeError(\"empty summary\")\n\n    return summary"
+  },
+  {
+    "id": "py-4",
+    "language": "python",
+    "source": "def top_scores(entries):\n    ranked = sorted(entries, key=lambda entry: entry[\"score\"], reverse=True)\n\n    return [\n        {\"rank\": index + 1, \"name\": entry[\"name\"], \"score\": entry[\"score\"]}\n        for index, entry in enumerate(ranked[:5])\n    ]"
+  },
+  {
+    "id": "py-5",
+    "language": "python",
+    "source": "def group_posts_by_tag(posts):\n    grouped = {}\n\n    for post in posts:\n        for tag in post.tags:\n            grouped.setdefault(tag, []).append(post.slug)\n\n    return grouped"
+  },
+  {
+    "id": "py-6",
+    "language": "python",
+    "source": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Score:\n    name: str\n    value: int\n    accuracy: float\n\n    @property\n    def is_perfect(self) -> bool:\n        return self.accuracy >= 99.5"
+  },
+  {
+    "id": "py-7",
+    "language": "python",
+    "source": "from contextlib import contextmanager\n\n@contextmanager\ndef timed(label):\n    import time\n    start = time.perf_counter()\n    try:\n        yield\n    finally:\n        elapsed = time.perf_counter() - start\n        print(f\"{label}: {elapsed:.3f}s\")"
+  },
+  {
+    "id": "py-8",
+    "language": "python",
+    "source": "def chunked(iterable, size):\n    if size <= 0:\n        raise ValueError(\"size must be positive\")\n\n    batch = []\n    for item in iterable:\n        batch.append(item)\n        if len(batch) == size:\n            yield batch\n            batch = []\n\n    if batch:\n        yield batch"
+  },
+  {
+    "id": "py-9",
+    "language": "python",
+    "source": "def index_by(items, key):\n    return {key(item): item for item in items}\n\n\nusers_by_id = index_by(users, lambda user: user.id)\nactive_names = {user.name for user in users if user.is_online}"
+  },
+  {
+    "id": "py-10",
+    "language": "python",
+    "source": "def safe_divide(numerator, denominator, default=0.0):\n    try:\n        return numerator / denominator\n    except ZeroDivisionError:\n        return default\n    except TypeError as error:\n        raise ValueError(\"non-numeric inputs\") from error"
+  }
+]

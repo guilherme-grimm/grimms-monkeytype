@@ -1,0 +1,52 @@
+[
+  {
+    "id": "js-1",
+    "language": "javascript",
+    "source": "function collectActiveUsers(users, cutoff) {\n  const activeUsers = []\n\n  for (const user of users) {\n    if (!user.isOnline || user.lastSeenAt <= cutoff) {\n      continue\n    }\n\n    activeUsers.push(user.name)\n  }\n\n  return activeUsers\n}"
+  },
+  {
+    "id": "js-2",
+    "language": "javascript",
+    "source": "function groupPostsByTag(posts) {\n  const grouped = {}\n\n  for (const post of posts) {\n    for (const tag of post.tags) {\n      grouped[tag] ??= []\n      grouped[tag].push(post.slug)\n    }\n  }\n\n  return grouped\n}"
+  },
+  {
+    "id": "js-3",
+    "language": "javascript",
+    "source": "async function loadProjectSummary(fetcher, projectId) {\n  const response = await fetcher(`/api/projects/${projectId}`)\n\n  if (!response.ok) {\n    throw new Error('Failed to load project summary')\n  }\n\n  const project = await response.json()\n  return `${project.name}:${project.branch}`.toLowerCase()\n}"
+  },
+  {
+    "id": "js-4",
+    "language": "javascript",
+    "source": "function buildLeaderboard(entries) {\n  return entries\n    .filter((entry) => entry.score > 0)\n    .sort((left, right) => right.score - left.score)\n    .slice(0, 5)\n    .map((entry, index) => ({\n      rank: index + 1,\n      name: entry.name,\n      score: entry.score,\n    }))\n}"
+  },
+  {
+    "id": "js-5",
+    "language": "javascript",
+    "source": "function clampScore(score, minimum, maximum) {\n  if (score < minimum) {\n    return minimum\n  }\n\n  if (score > maximum) {\n    return maximum\n  }\n\n  return score\n}"
+  },
+  {
+    "id": "js-6",
+    "language": "javascript",
+    "source": "function debounce(fn, waitMs) {\n  let timeoutId = null\n\n  return function debounced(...args) {\n    if (timeoutId !== null) {\n      clearTimeout(timeoutId)\n    }\n\n    timeoutId = setTimeout(() => {\n      timeoutId = null\n      fn.apply(this, args)\n    }, waitMs)\n  }\n}"
+  },
+  {
+    "id": "js-7",
+    "language": "javascript",
+    "source": "function parseQueryString(input) {\n  const params = {}\n  const trimmed = input.replace(/^\\?/, '')\n\n  for (const pair of trimmed.split('&')) {\n    if (!pair) continue\n\n    const [rawKey, rawValue = ''] = pair.split('=')\n    params[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue)\n  }\n\n  return params\n}"
+  },
+  {
+    "id": "js-8",
+    "language": "javascript",
+    "source": "async function retryWithBackoff(operation, attempts = 3) {\n  let lastError = null\n\n  for (let attempt = 0; attempt < attempts; attempt += 1) {\n    try {\n      return await operation()\n    } catch (error) {\n      lastError = error\n      await new Promise((resolve) => setTimeout(resolve, 2 ** attempt * 100))\n    }\n  }\n\n  throw lastError\n}"
+  },
+  {
+    "id": "js-9",
+    "language": "javascript",
+    "source": "function chunk(items, size) {\n  if (size <= 0) {\n    throw new RangeError('chunk size must be positive')\n  }\n\n  const result = []\n\n  for (let index = 0; index < items.length; index += size) {\n    result.push(items.slice(index, index + size))\n  }\n\n  return result\n}"
+  },
+  {
+    "id": "js-10",
+    "language": "javascript",
+    "source": "function deepFreeze(target) {\n  if (target === null || typeof target !== 'object') {\n    return target\n  }\n\n  for (const key of Object.keys(target)) {\n    deepFreeze(target[key])\n  }\n\n  return Object.freeze(target)\n}"
+  }
+]

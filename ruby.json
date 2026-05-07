@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ruby-1",
+    "language": "ruby",
+    "source": "def collect_active_users(users, cutoff)\n  users.each_with_object([]) do |user, active|\n    next unless user.online? && user.last_seen_at > cutoff\n\n    active << user.name\n  end\nend"
+  },
+  {
+    "id": "ruby-2",
+    "language": "ruby",
+    "source": "class Score < ApplicationRecord\n  belongs_to :user\n\n  validates :value, numericality: { greater_than_or_equal_to: 0 }\n\n  scope :recent, -> { where(\"created_at > ?\", 7.days.ago) }\n\n  def self.top(limit = 5)\n    order(value: :desc).limit(limit)\n  end\nend"
+  },
+  {
+    "id": "ruby-3",
+    "language": "ruby",
+    "source": "def group_posts_by_tag(posts)\n  posts.each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |post, grouped|\n    post.tags.each do |tag|\n      grouped[tag] << post.slug\n    end\n  end\nend"
+  },
+  {
+    "id": "ruby-4",
+    "language": "ruby",
+    "source": "def build_summary(project)\n  raise ArgumentError, \"missing project name\" if project.name.blank?\n\n  summary = \"#{project.name}:#{project.branch}\".downcase\n  summary.tr(\" \", \"-\")\nend"
+  },
+  {
+    "id": "ruby-5",
+    "language": "ruby",
+    "source": "def clamp_score(score, range)\n  return range.min if score < range.min\n  return range.max if score > range.max\n\n  score\nend\n\nclamped = clamp_score(120, 0..100)"
+  },
+  {
+    "id": "ruby-6",
+    "language": "ruby",
+    "source": "def top_scores(entries, limit = 5)\n  entries\n    .select { |entry| entry[:score].positive? }\n    .sort_by { |entry| -entry[:score] }\n    .first(limit)\n    .map.with_index(1) { |entry, rank| entry.merge(rank: rank) }\nend"
+  },
+  {
+    "id": "ruby-7",
+    "language": "ruby",
+    "source": "def fetch_with_retry(url, attempts: 3)\n  attempt = 0\n\n  begin\n    attempt += 1\n    HTTP.get(url).tap { |response| raise \"bad status\" unless response.status.success? }\n  rescue StandardError => error\n    retry if attempt < attempts\n    raise error\n  end\nend"
+  },
+  {
+    "id": "ruby-8",
+    "language": "ruby",
+    "source": "module Memoizable\n  def memoize(method_name)\n    original = instance_method(method_name)\n    cache = {}\n\n    define_method(method_name) do |*args|\n      cache[args] ||= original.bind(self).call(*args)\n    end\n  end\nend"
+  },
+  {
+    "id": "ruby-9",
+    "language": "ruby",
+    "source": "def index_by(items)\n  items.each_with_object({}) do |item, indexed|\n    key = yield(item)\n    indexed[key] = item\n  end\nend\n\nusers_by_id = index_by(users) { |user| user.id }"
+  },
+  {
+    "id": "ruby-10",
+    "language": "ruby",
+    "source": "def chunked(items, size)\n  raise ArgumentError, \"size must be positive\" unless size.positive?\n\n  Enumerator.new do |yielder|\n    items.each_slice(size) { |batch| yielder << batch }\n  end\nend"
+  }
+]
