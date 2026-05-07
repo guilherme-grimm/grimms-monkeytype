@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { ComboCounter } from '#/components/game/combo-counter'
@@ -16,6 +16,7 @@ import { isSupportedLanguage } from '#/lib/game/normalization'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
 import { submitScoreServerFn } from '#/server/scores-client'
+import { buildShareText } from '#/lib/share/copy'
 import { useToast } from '#/components/ui/toast'
 
 export const Route = createFileRoute('/play')({
@@ -33,6 +34,10 @@ function PlayRoute() {
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const [lastFinishedResult, setLastFinishedResult] = useState<{ metrics: RoundMetrics; elapsedMs: number } | null>(null)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'anon'>('idle')
+  // Holds the in-flight save promise so the share button can await it without
+  // racing the React state machine. Resolves to a scoreId on success or null
+  // on anon/error — share callers fall back to text-only when null.
+  const savePromiseRef = useRef<Promise<string | null> | null>(null)
 
   function focusInput() {
     inputRef.current?.focus({ preventScroll: true })
@@ -43,28 +48,36 @@ function PlayRoute() {
     setLastFinishedResult({ metrics: result, elapsedMs })
     if (!session?.user) {
       setSubmitStatus('anon')
+      savePromiseRef.current = Promise.resolve(null)
       return
     }
 
     setSubmitStatus('saving')
-    try {
-      await submitScoreServerFn({ data: { ...result, elapsedMs } })
-      setSubmitStatus('saved')
-      showToast('Score saved to leaderboard!', 'success')
-    } catch (err) {
-      setSubmitStatus('error')
-      const status = (err as { status?: number } | null)?.status
-      console.error('Score submission failed', err)
-      if (status === 401) {
-        showToast('Session expired — sign in again to save your score.', 'error')
-      } else if (status === 422) {
-        showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
-      } else if (status && status >= 500) {
-        showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
-      } else {
-        showToast('Failed to save score. Try again.', 'error')
+    const promise = (async (): Promise<string | null> => {
+      try {
+        const res = await submitScoreServerFn({ data: { ...result, elapsedMs } })
+        setSubmitStatus('saved')
+        showToast('Score saved to leaderboard!', 'success')
+        return res.scoreId
+      } catch (err) {
+        setSubmitStatus('error')
+        const status = (err as { status?: number } | null)?.status
+        console.error('Score submission failed', err)
+        if (status === 401) {
+          showToast('Session expired — sign in again to save your score.', 'error')
+        } else if (status === 422) {
+          showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
+        } else if (status && status >= 500) {
+          showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
+        } else {
+          showToast('Failed to save score. Try again.', 'error')
+        }
+        return null
       }
-    }
+    })()
+
+    savePromiseRef.current = promise
+    await promise
   }, [session?.user, showToast])
 
   // Start with the default so SSR and the first client render match. After
@@ -113,6 +126,7 @@ function PlayRoute() {
     if (round.status !== 'finished') {
       setSubmitStatus('idle')
       setLastFinishedResult(null)
+      savePromiseRef.current = null
     }
   }, [round.status])
 
@@ -330,6 +344,7 @@ function PlayRoute() {
             onNextSnippet={round.startFreshRun}
             submitStatus={submitStatus}
             lastResult={lastFinishedResult}
+            savePromiseRef={savePromiseRef}
           />
         )}
       </section>
@@ -346,9 +361,11 @@ function ResultPanel(props: {
   language: LanguageId
   submitStatus: 'idle' | 'saving' | 'saved' | 'error' | 'anon'
   lastResult: { metrics: RoundMetrics; elapsedMs: number } | null
+  savePromiseRef: MutableRefObject<Promise<string | null> | null>
 }) {
   const { showToast } = useToast()
   const [copied, setCopied] = useState(false)
+  const [awaitingShare, setAwaitingShare] = useState(false)
 
   const candidate: LocalBestScore = {
     ...props.metrics,
@@ -373,23 +390,75 @@ function ResultPanel(props: {
             ? 'Sign in to save scores to the global leaderboard.'
             : null
 
-  const shareText = `I just scored ${props.metrics.score} points on typer.grimm0.dev!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${props.language}`
-  const shareUrl = 'https://typer.grimm0.dev'
+  const fallbackShareText = `I just scored ${props.metrics.score} points on typer.grimm0.dev!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${props.language}`
+  const siteUrl = 'https://typer.grimm0.dev'
+
+  // Returns the tweet text to use given a resolved scoreId. When scoreId is
+  // null (anon, save error, or save still pending and we don't want to wait)
+  // we fall back to today's stats-as-text + bare site URL — Twitter unfurls it
+  // to the homepage card instead of a per-run card.
+  function buildOutgoingText(scoreId: string | null): string {
+    if (!scoreId) return `${fallbackShareText}\n${siteUrl}`
+    const url = `${siteUrl}/r/${scoreId}`
+    return buildShareText(rankFor(props.metrics.score), url)
+  }
+
+  // Resolve the scoreId without racing the save: if the save is in flight,
+  // await it; if it never started (anon) or failed (error), return null and
+  // let the caller fall back to text-only.
+  async function resolveScoreId(): Promise<string | null> {
+    if (props.submitStatus === 'anon' || props.submitStatus === 'error') {
+      return null
+    }
+    const promise = props.savePromiseRef.current
+    if (!promise) return null
+    return promise
+  }
 
   async function handleCopy() {
+    if (awaitingShare) return
+    setAwaitingShare(true)
     try {
-      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
+      const scoreId = await resolveScoreId()
+      const text = buildOutgoingText(scoreId)
+      await navigator.clipboard.writeText(text)
       setCopied(true)
       showToast('Copied to clipboard!', 'success')
       setTimeout(() => setCopied(false), 2000)
     } catch {
       showToast('Failed to copy to clipboard.', 'error')
+    } finally {
+      setAwaitingShare(false)
     }
   }
 
-  function handleShareX() {
-    const text = encodeURIComponent(`${shareText}\n${shareUrl}`)
-    window.open(`https://x.com/intent/tweet?text=${text}`, '_blank')
+  async function handleShareX() {
+    if (awaitingShare) return
+    setAwaitingShare(true)
+    // Open the window synchronously so the browser preserves the user-gesture
+    // context — popup blockers reject window.open() called after `await`.
+    // Resolve the URL after, then redirect the placeholder tab.
+    const popup = window.open('about:blank', '_blank')
+    try {
+      const scoreId = await resolveScoreId()
+      const text = encodeURIComponent(buildOutgoingText(scoreId))
+      const url = `https://x.com/intent/tweet?text=${text}`
+      if (popup && !popup.closed) {
+        popup.location.href = url
+      } else {
+        // Popup blocked or closed during the await. Don't navigate the
+        // current tab — that would yank the user out of /play. Toast and
+        // copy to clipboard as a soft fallback.
+        try {
+          await navigator.clipboard.writeText(buildOutgoingText(scoreId))
+          showToast('Popup blocked — share text copied to clipboard.', 'success')
+        } catch {
+          showToast('Popup blocked — please enable popups for this site.', 'error')
+        }
+      }
+    } finally {
+      setAwaitingShare(false)
+    }
   }
 
   return (
@@ -461,13 +530,20 @@ function ResultPanel(props: {
           Next snippet
         </button>
         <button
-          className={copied ? 'button-secondary' : 'button-secondary'}
+          className="button-secondary"
           onClick={handleCopy}
+          aria-busy={awaitingShare && !copied}
+          disabled={awaitingShare && !copied}
         >
-          {copied ? 'copied!' : 'copy result'}
+          {copied ? 'copied!' : awaitingShare ? 'preparing…' : 'copy result'}
         </button>
-        <button className="button-accent" onClick={handleShareX}>
-          share on x
+        <button
+          className="button-accent"
+          onClick={handleShareX}
+          aria-busy={awaitingShare}
+          disabled={awaitingShare}
+        >
+          {awaitingShare ? 'preparing…' : 'share on x'}
         </button>
         <Link className="button-secondary no-underline" to="/" search={{ language: props.language }}>
           Back home

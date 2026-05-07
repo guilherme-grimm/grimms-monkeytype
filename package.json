@@ -17,6 +17,7 @@
   "dependencies": {
     "@better-auth/infra": "^0.2.5",
     "@libsql/client": "^0.17.3",
+    "@resvg/resvg-js": "^2.6.2",
     "@tanstack/react-router": "latest",
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
@@ -25,6 +26,7 @@
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "satori": "^0.26.0",
     "tailwindcss": "^4.1.18",
     "zod": "^4.4.3"
   },

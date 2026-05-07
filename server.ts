@@ -10,7 +10,13 @@ await migrate(db, { migrationsFolder: './drizzle' })
 
 const port = Number(process.env.PORT ?? 3000)
 const clientRoot = join(import.meta.dir, 'dist', 'client')
-const publicFilePaths = new Set(['/favicon.png', '/favicon.ico', '/manifest.json', '/robots.txt'])
+const publicFilePaths = new Set([
+  '/favicon.png',
+  '/favicon.ico',
+  '/manifest.json',
+  '/robots.txt',
+  '/og.png',
+])
 
 function getStaticFilePath(pathname: string) {
   const isAssetPath = pathname.startsWith('/assets/')

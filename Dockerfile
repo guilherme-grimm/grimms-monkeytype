@@ -25,6 +25,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/server.ts ./server.ts
 COPY --from=builder /app/src/server ./src/server
+COPY --from=builder /app/assets ./assets
 
 # Persistent SQLite location — mount a Coolify volume here
 RUN mkdir -p /app/data && chown -R bun:bun /app/data

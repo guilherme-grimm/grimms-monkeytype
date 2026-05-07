@@ -1,10 +1,16 @@
-import type { LocalBestScore } from '#/lib/game/types'
+import type { LocalBestScore, RoundMetrics } from '#/lib/game/types'
+
+export type SubmitScoreResponse = {
+  scoreId: string
+  metrics: RoundMetrics
+  bestUpdated: boolean
+}
 
 export async function submitScoreServerFn(input: {
   data: LocalBestScore & {
     elapsedMs: number
   }
-}) {
+}): Promise<SubmitScoreResponse> {
   const { data } = input
 
   const response = await fetch('/api/scores', {

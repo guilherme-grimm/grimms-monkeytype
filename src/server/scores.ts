@@ -119,6 +119,7 @@ export async function submitAuthenticatedScore(userId: string, rawInput: SubmitS
   }
 
   return {
+    scoreId,
     metrics,
     bestUpdated,
   }

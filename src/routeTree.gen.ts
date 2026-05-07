@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RIdRouteImport } from './routes/r.$id'
 import { Route as ApiScoresRouteImport } from './routes/api/scores'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiOgIdRouteImport } from './routes/api/og.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const PlayRoute = PlayRouteImport.update({
@@ -31,6 +33,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RIdRoute = RIdRouteImport.update({
+  id: '/r/$id',
+  path: '/r/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScoresRoute = ApiScoresRouteImport.update({
   id: '/api/scores',
   path: '/api/scores',
@@ -39,6 +46,11 @@ const ApiScoresRoute = ApiScoresRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgIdRoute = ApiOgIdRouteImport.update({
+  id: '/api/og/$id',
+  path: '/api/og/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -53,7 +65,9 @@ export interface FileRoutesByFullPath {
   '/play': typeof PlayRoute
   '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
+  '/r/$id': typeof RIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/$id': typeof ApiOgIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,7 +75,9 @@ export interface FileRoutesByTo {
   '/play': typeof PlayRoute
   '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
+  '/r/$id': typeof RIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/$id': typeof ApiOgIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,7 +86,9 @@ export interface FileRoutesById {
   '/play': typeof PlayRoute
   '/api/health': typeof ApiHealthRoute
   '/api/scores': typeof ApiScoresRoute
+  '/r/$id': typeof RIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/$id': typeof ApiOgIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,7 +98,9 @@ export interface FileRouteTypes {
     | '/play'
     | '/api/health'
     | '/api/scores'
+    | '/r/$id'
     | '/api/auth/$'
+    | '/api/og/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -88,7 +108,9 @@ export interface FileRouteTypes {
     | '/play'
     | '/api/health'
     | '/api/scores'
+    | '/r/$id'
     | '/api/auth/$'
+    | '/api/og/$id'
   id:
     | '__root__'
     | '/'
@@ -96,7 +118,9 @@ export interface FileRouteTypes {
     | '/play'
     | '/api/health'
     | '/api/scores'
+    | '/r/$id'
     | '/api/auth/$'
+    | '/api/og/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,7 +129,9 @@ export interface RootRouteChildren {
   PlayRoute: typeof PlayRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiScoresRoute: typeof ApiScoresRoute
+  RIdRoute: typeof RIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiOgIdRoute: typeof ApiOgIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/r/$id': {
+      id: '/r/$id'
+      path: '/r/$id'
+      fullPath: '/r/$id'
+      preLoaderRoute: typeof RIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/scores': {
       id: '/api/scores'
       path: '/api/scores'
@@ -143,6 +176,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/$id': {
+      id: '/api/og/$id'
+      path: '/api/og/$id'
+      fullPath: '/api/og/$id'
+      preLoaderRoute: typeof ApiOgIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -161,7 +201,9 @@ const rootRouteChildren: RootRouteChildren = {
   PlayRoute: PlayRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiScoresRoute: ApiScoresRoute,
+  RIdRoute: RIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiOgIdRoute: ApiOgIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

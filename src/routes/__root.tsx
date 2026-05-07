@@ -5,24 +5,32 @@ import { DebugTrigger } from '#/components/dev/debug-trigger'
 import { useApplyImmersionCssVars } from '#/lib/game/immersion-prefs'
 import appCss from '../styles.css?url'
 
+const SITE_TITLE = 'typer.grimm0.dev'
+const SITE_DESCRIPTION =
+  'A coding typing game built for speed. Ignore tabs and line breaks. Spaces count.'
+const SITE_URL = 'https://typer.grimm0.dev'
+const SITE_OG_IMAGE = `${SITE_URL}/og.png`
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'typer.grimm0.dev',
-      },
-      {
-        name: 'description',
-        content:
-          'A coding typing game built for speed. Ignore tabs and line breaks. Spaces count.',
-      },
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: SITE_TITLE },
+      { name: 'description', content: SITE_DESCRIPTION },
+
+      { property: 'og:type', content: 'website' },
+      { property: 'og:title', content: SITE_TITLE },
+      { property: 'og:description', content: SITE_DESCRIPTION },
+      { property: 'og:url', content: SITE_URL },
+      { property: 'og:image', content: SITE_OG_IMAGE },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: SITE_TITLE },
+      { name: 'twitter:description', content: SITE_DESCRIPTION },
+      { name: 'twitter:image', content: SITE_OG_IMAGE },
     ],
     links: [
       {
