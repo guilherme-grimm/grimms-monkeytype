@@ -35,7 +35,7 @@ function PlayRoute() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'anon'>('idle')
 
   function focusInput() {
-    inputRef.current?.focus()
+    inputRef.current?.focus({ preventScroll: true })
     inputRef.current?.setSelectionRange(round.typedValue.length, round.typedValue.length)
   }
 
