@@ -87,7 +87,7 @@ function Home() {
               <span className="terminal-text">for code.</span>
             </h1>
             <p className="max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:text-lg">
-              Real code blocks, thirty second rounds, and a phosphor terminal feel. Type straight through. Newlines are visual. Tabs jump indentation.
+              Write code for fun while the agents do the heavy lifting. Hone the unused skill of touch typing.
             </p>
           </div>
 

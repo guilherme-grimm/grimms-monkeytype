@@ -145,14 +145,14 @@ function PlayRoute() {
                 : 'text-2xl text-[var(--color-text-strong)] sm:text-3xl'
             }`}
           >
-            Thirty seconds. Keep shipping.
+            Thirty seconds. No distractions.
           </h1>
           <p
             className={`mt-2 text-sm transition-opacity duration-200 ${
               isActive ? 'text-[var(--color-muted)]/70' : 'text-[var(--color-muted)]'
             }`}
           >
-            Type straight through. Line breaks are visual. `Tab` only jumps leading indentation.
+            Type straight through. [Tab] only jumps leading indentation.
           </p>
         </div>
 
@@ -232,7 +232,7 @@ function PlayRoute() {
                 <div className="space-y-2 text-[var(--color-muted)]">
                   <p>Line breaks are visual only.</p>
                   <p>Spaces still count.</p>
-                  <p>`Tab` jumps leading indentation, `Esc` aborts the run.</p>
+                  <p>[Tab] jumps leading indentation, [Esc] aborts the run.</p>
                   <p>After the result: `Space` runs the same snippet back, `Enter` pulls a new one.</p>
                 </div>
                 <div className="flex flex-wrap gap-3 pt-2">
@@ -300,9 +300,12 @@ function PlayRoute() {
               isActive ? 'run-controls-active' : ''
             }`}
           >
-            <button className="button-primary" onClick={focusInput}>
+            <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
               {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'}
-            </button>
+	    </span>
+            {/* <button className="button-secondary" onClick={focusInput}> */}
+            {/*   {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'} */}
+            {/* </button> */}
             <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
               typed {round.typedValue.length} / {round.currentSnippet.normalized.length}
             </span>
@@ -312,7 +315,7 @@ function PlayRoute() {
             <button
               className="button-secondary"
               onClick={round.resetRound}
-              title="Abort this run and pull a new snippet (Esc)"
+              title="Abort this run and pull a new snippet [Esc]"
             >
               Reset run
             </button>
@@ -395,6 +398,19 @@ function ResultPanel(props: {
         <div>
           <p className="eyebrow text-[var(--color-accent-glow)]">run complete</p>
           <h2 className="mt-2 text-3xl font-semibold terminal-text">{props.metrics.score} score</h2>
+          <p className="mt-2 score-breakdown text-sm text-[var(--color-muted)]">
+            <span className="score-breakdown-base">{props.metrics.baseScore}</span>
+            <span className="score-breakdown-op" aria-hidden="true">×</span>
+            <span
+              className={`score-breakdown-mult score-breakdown-mult-${props.metrics.mode}`}
+              title={`${props.metrics.mode} difficulty multiplier`}
+            >
+              {props.metrics.multiplier.toFixed(2)}
+            </span>
+            <span className="score-breakdown-op" aria-hidden="true">=</span>
+            <span className="score-breakdown-total">{props.metrics.score}</span>
+            <span className="score-breakdown-mode">{props.metrics.mode}</span>
+          </p>
         </div>
         <RankBadge rank={rankFor(props.metrics.score)} isPersonalBest={props.isPersonalBest} />
       </div>
