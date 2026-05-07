@@ -14,7 +14,7 @@ export function createTypingSoundPlayer() {
   }
 
   return {
-    async play(streak = 0, intensity = 0) {
+    async play(streak = 0, intensity = 0, gainCeiling = 1.5) {
       const context = getAudioContext()
 
       if (!context) {
@@ -38,9 +38,9 @@ export function createTypingSoundPlayer() {
       const semitones = Math.min(6, Math.floor(streak / 10))
       const pitchMultiplier = Math.pow(2, semitones / 12)
       // Gain lift scales with immersion level — quiet at idle, fuller at peak.
-      // Capped at +50% over baseline so the sound stays inside the phosphor
-      // aesthetic instead of tipping into harsh.
-      const gainMultiplier = 1 + Math.max(0, Math.min(1, intensity)) * 0.5
+      // `gainCeiling` is the max bump above baseline; defaults match the
+      // hardcoded +50% but the debug panel can tune it live.
+      const gainMultiplier = 1 + Math.max(0, Math.min(1, intensity)) * Math.max(0, gainCeiling)
 
       oscillator.type = 'triangle'
       overtone.type = 'sine'
@@ -72,5 +72,51 @@ export function createTypingSoundPlayer() {
       oscillator.stop(now + 0.065)
       overtone.stop(now + 0.04)
     },
+
+    // Audible counterpart to the visual snap-back: a short low-frequency thump
+    // when the streak resets. Filtered sawtooth dropping ~110→70Hz over 60ms
+    // gives a "thud" that sits underneath the regular keystroke tone instead of
+    // fighting it. Volume is tunable; frequency/decay stay constants until we
+    // hear them in context and decide otherwise.
+    async playError(volume = 0.05) {
+      const context = getAudioContext()
+
+      if (!context) {
+        return
+      }
+
+      if (context.state === 'suspended') {
+        await context.resume()
+      }
+
+      const safeVolume = Math.max(0, volume)
+      if (safeVolume === 0) return
+
+      const now = context.currentTime
+      const osc = context.createOscillator()
+      const gain = context.createGain()
+      const filter = context.createBiquadFilter()
+
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(110, now)
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.06)
+
+      filter.type = 'lowpass'
+      filter.frequency.setValueAtTime(380, now)
+      filter.Q.setValueAtTime(0.7, now)
+
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(safeVolume, now + 0.005)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09)
+
+      osc.connect(filter)
+      filter.connect(gain)
+      gain.connect(context.destination)
+
+      osc.start(now)
+      osc.stop(now + 0.1)
+    },
   }
 }
+
+export type TypingSoundPlayer = ReturnType<typeof createTypingSoundPlayer>

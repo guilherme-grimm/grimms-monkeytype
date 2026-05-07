@@ -24,6 +24,8 @@ import {
   shouldReplaceBest,
 } from '#/lib/game/storage'
 import { createTypingSoundPlayer } from '#/lib/game/typing-sound'
+import { useImmersionPrefs } from '#/lib/game/immersion-prefs'
+import { useEffectiveDebug } from '#/lib/dev/debug-config'
 import type {
   LanguageId,
   LocalBestScore,
@@ -125,6 +127,14 @@ export function useTypingRound({
   const recentSnippetIdsRef = useRef<Array<string>>([])
   const typingSoundRef = useRef(createTypingSoundPlayer())
   const finishRoundRef = useRef<(finalElapsedMs: number) => void>(() => {})
+
+  // In prod the debug curve params collapse to baked DEFAULTS; in DEV the dev
+  // panel mutates them live so we can keep tuning the curve without a reload.
+  const debug = useEffectiveDebug()
+  // User-tunable cosmetic + audio prefs — drives audio parameters here and
+  // body CSS vars (mounted in __root). Falls back to baked defaults if the
+  // user hasn't touched settings.
+  const immersionPrefs = useImmersionPrefs()
 
   function rememberSnippet(id: string) {
     const next = [id, ...recentSnippetIdsRef.current.filter((existing) => existing !== id)]
@@ -293,10 +303,19 @@ export function useTypingRound({
       }
 
       if (typingSoundEnabled) {
-        // Use the running streak's intensity (sqrt curve, 0–1) so the gain
-        // bump tracks the visual escalation in lockstep.
-        const runningIntensity = Math.min(1, Math.sqrt(runningStreak / 60))
-        void typingSoundRef.current.play(runningStreak, runningIntensity)
+        // Same curve as the visual `streakIntensity` so audio gain tracks the
+        // immersion ramp 1:1. Curve params are dev-tunable; gain ceiling and
+        // error thunk are user-tunable.
+        const denom = Math.max(1, debug.curveDenominator)
+        const runningIntensity = Math.min(1, Math.pow(runningStreak / denom, debug.curveExponent))
+        const gainCeiling = immersionPrefs.audioGainEscalation ? immersionPrefs.audioGainCeiling : 0
+        void typingSoundRef.current.play(runningStreak, runningIntensity, gainCeiling)
+        // Audible counterpart to the visual snap-back: short low thump on the
+        // keystroke that broke the streak. Layered *after* the regular tone so
+        // the error click + thump arrive together.
+        if (sawError && immersionPrefs.errorThunk) {
+          void typingSoundRef.current.playError(immersionPrefs.errorThunkVolume)
+        }
       }
 
       setCorrectChars(nextCorrectChars)
@@ -401,12 +420,12 @@ export function useTypingRound({
 
   const remainingMs = Math.max(0, roundDurationMs - elapsedMs)
 
-  // 0–1 immersion curve. Caps at streak 60 so the player can hit max intensity
-  // mid-run without needing perfection across the whole round; using a soft
-  // sqrt curve so the early gains feel earned (small bumps lift the mood) while
-  // the high end levels off (no runaway sensory overload). Errors snap streak
-  // to 0 → intensity drops sharply, which the snap-back animation exploits.
-  const streakIntensity = Math.min(1, Math.sqrt(correctStreak / 60))
+  // 0–1 immersion curve. Defaults: streak/60 raised to 0.5 (= sqrt) — early
+  // gains feel earned, the top levels off so there's no runaway sensory load.
+  // Errors zero the streak → intensity drops sharply, snap-back animation
+  // exploits that. DEV panel can tune denominator and exponent live.
+  const denom = Math.max(1, debug.curveDenominator)
+  const streakIntensity = Math.min(1, Math.pow(correctStreak / denom, debug.curveExponent))
 
   function setTypingSoundEnabled(next: boolean | ((prev: boolean) => boolean)) {
     setTypingSoundEnabledState(next)

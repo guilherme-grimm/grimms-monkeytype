@@ -49,10 +49,12 @@ export type LocalBestScore = RoundMetrics & {
 }
 
 import type { DifficultyPreset } from './difficulty'
+import type { ImmersionPrefs } from './immersion-prefs'
 
 export type StoredPreferences = {
   lastLanguage?: LanguageId
   typingSoundEnabled?: boolean
   hasSeenPlayOnboarding?: boolean
   difficultyPreset?: DifficultyPreset
+  immersion?: Partial<ImmersionPrefs>
 }

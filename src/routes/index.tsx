@@ -231,7 +231,7 @@ function Home() {
                           </p>
                         </div>
 
-                        <div className="text-right">
+                        <div className="shrink-0 whitespace-nowrap text-right">
                           <p className="text-2xl font-semibold terminal-text">{entry.score}</p>
                           <p className="mt-1 text-sm text-[var(--color-muted)]">{entry.snippetsCompleted} snippets</p>
                         </div>

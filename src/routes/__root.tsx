@@ -1,6 +1,8 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { ToastProvider } from '#/components/ui/toast'
+import { DebugTrigger } from '#/components/dev/debug-trigger'
+import { useApplyImmersionCssVars } from '#/lib/game/immersion-prefs'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -39,6 +41,7 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  useApplyImmersionCssVars()
   return (
     <html lang="en">
       <head>
@@ -54,6 +57,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ToastProvider>
           {children}
         </ToastProvider>
+        {import.meta.env.DEV ? <DebugTrigger /> : null}
         <Scripts />
       </body>
     </html>
