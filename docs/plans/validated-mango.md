@@ -1,5 +1,33 @@
 # Validated-Mango Overhaul — Grimm's MonkeyType
 
+## Status (2026-05-07)
+
+**Shipped to prod:**
+- Step 0 — auth verification + `/api/health` + visibility hardening + `dash()` plugin wired
+- Step 1 — snippets migrated to JSON (now top-level `/snippets/*.json`, tracked)
+- Step 2 — `src/lib/game/difficulty.ts` flags + presets
+- Step 3 — `multiplier` column + scoring math + `rankFor`
+- Step 4 — Run-It-Back vs Next-Snippet split, post-finish keybinds
+- Step 5 — reset-button visibility fix
+- Step 6 — Reactions L1 (pitch), L2 (`combo-counter`), L3 (`rank-badge`)
+- Step 7 — immersion `streakIntensity` + CSS vars + audio gain ramp + error thunk + DEV calibration panel; calibrated values baked as defaults; user-tunable visual+audio in settings drawer
+- Step 8 — home difficulty pill + settings drawer behind gear icon
+- Step 9 — result panel rework (rank badge, PB callout, replay/next buttons)
+- Step 10 — leaderboard Difficulty + Multiplier columns, self-row highlight, "your standing" footer for users outside top 25
+- Step 11 — Kotlin / Ruby / PHP snippet packs
+
+**Calibrated defaults** (baked 2026-05-07): curve denom 81, exp 0.75; vignette 0.46; caret glow 20px; snippet sat 0.29; snap-back 0.82 / 260ms; audio gain ceiling 1.5; error thunk 0.05.
+
+**Next milestone:** survival mode (out of scope for this overhaul — primitives are in place).
+
+**Deferred / nice-to-haves:**
+- HN-readiness scrub (record 30s clip, console-error sweep, mobile fallback messaging)
+- Generated OG images per run
+- Daily/weekly leaderboards
+- Display-name customization
+
+---
+
 ## Context
 
 Project validated. This is a UI/UX foundation pass focused on the **core gameplay loop** before survival mode (the next milestone). Today the typing test is functionally complete but flat: no difficulty options, a buggy-feeling reset button, only 5 languages hardcoded into a TS file, basic per-keystroke feedback, and an immersion model that fades chrome on type but doesn't *escalate*.
@@ -20,7 +48,7 @@ Goals, in priority order:
 | Leaderboard | One aggregated board per language. `score.mode` stores preset; `score.multiplier` stored alongside so rebalances don't rewrite history. |
 | Reset semantics | Mid-run **Reset Run** (Tab/button) → new snippet (current behavior). Post-finish **Run It Back** (Space) → replay same snippet. Post-finish **Next Snippet** (Enter) → new snippet. |
 | Reset button bug | `.run-controls-active` opacity 0.24 fades the whole bar including the button. Fix: keep 0.24 on helper text only; button stays ≥0.7. |
-| Languages | Code-only. Migrate to `data/snippets/<lang>.json`. Launch set: js, ts, python, go, java, **kotlin, ruby, php**. |
+| Languages | Code-only. Migrate to `snippets/<lang>.json`. Launch set: js, ts, python, go, java, **kotlin, ruby, php**. |
 | Reactions | L1 per-keystroke polish + L2 combo/event + L3 run-end rank/PB. In-genre (phosphor/CRT/glitch only — no emoji, no confetti). Mascot deferred. |
 | Immersion escalation | First-class concept: `streakIntensity` 0–1 derived from correct-streak, drives vignette / chrome opacity / caret glow / audio gain via a `--immersion-level` CSS var. Error → brief snap-back. |
 | Difficulty selector UI | Primary: home page beside the language pill. Secondary: settings drawer behind a header gear icon (also future home for granular flags). |
@@ -171,7 +199,7 @@ All four must be true before starting Step 1:
 4. A submission failure (artificial — e.g. sign out and try to submit) shows a *specific* toast (`Failed (401)`) rather than the generic `Failed to submit score`.
 
 ### 1. Snippet JSON migration *(no behavior change)*
-- Create `data/snippets/{javascript,typescript,python,go,java,kotlin,ruby,php}.json` (≥5 snippets each).
+- Create `snippets/{javascript,typescript,python,go,java,kotlin,ruby,php}.json` (≥5 snippets each).
 - Refactor `src/lib/game/snippets.ts` to load JSON via Vite raw imports; keep public API (`getInitialSnippet`, `getRandomSnippet`) stable.
 - Add `kotlin`, `ruby`, `php` to `languages` const at `src/lib/game/types.ts:1`.
 
@@ -256,7 +284,7 @@ All four must be true before starting Step 1:
 - `src/components/SettingsDrawer.tsx`
 - `src/components/game/ComboCounter.tsx`
 - `src/components/game/RankBadge.tsx`
-- `data/snippets/{javascript,typescript,python,go,java,kotlin,ruby,php}.json`
+- `snippets/{javascript,typescript,python,go,java,kotlin,ruby,php}.json`
 
 ## Verification
 
