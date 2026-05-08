@@ -1,5 +1,5 @@
-import { join } from 'node:path'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 // Anchor to the working directory so this path is identical in dev (vite,
 // cwd = project root) and in production (Docker WORKDIR /app, cwd = /app).

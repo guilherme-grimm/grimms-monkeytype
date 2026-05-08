@@ -30,6 +30,10 @@ bun run dev
 Dev server runs on `:3000`. A floating bottom-right "DEV" pill opens an immersion-curve calibration panel — DEV-only, tree-shaken from prod builds.
 
 ## Testing
+
+> **⚠️ Heads-up:** `bun run test` is currently **known-flaky** and is **not run in CI**.
+> Do not treat red local runs as a blocker. See [CONTRIBUTING.md](./CONTRIBUTING.md#tests) for context.
+
 ```bash
 bun run test
 ```
@@ -62,3 +66,13 @@ The app listens on `PORT`, defaulting to `3000`. Mount a persistent volume at `/
 - Server recomputes/validates submitted scores; sanity checks only, no heavy anti-cheat
 - Immersion + difficulty selectors are user-tunable; curve mechanics are not
 - Primary outcome is fun, not monetization
+
+## Contributing
+
+PRs welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening one — there are a few non-obvious scope and testing notes worth knowing.
+
+For security issues, see [SECURITY.md](./SECURITY.md) (please don't file public issues).
+
+## License
+
+MIT — see [`LICENSE`](./LICENSE).

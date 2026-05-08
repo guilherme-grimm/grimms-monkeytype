@@ -1,6 +1,6 @@
-import { dirname, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 
 import { Resvg } from '@resvg/resvg-js'
 import { eq } from 'drizzle-orm'
@@ -8,7 +8,7 @@ import satori from 'satori'
 
 import { rankFor } from '#/lib/game/scoring'
 
-import { user, score as scoreTable } from '../auth-schema'
+import { score as scoreTable, user } from '../auth-schema'
 import { db } from '../db'
 import { ogFonts } from './fonts'
 import { renderRunCard } from './render'

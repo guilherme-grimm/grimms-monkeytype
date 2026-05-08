@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-
+import { useEffectiveDebug } from '#/lib/dev/debug-config'
 import { roundDurationMs } from '#/lib/game/constants'
-import {
-  DEFAULT_DIFFICULTY,
-  type DifficultyPreset,
-  presetToFlags,
-} from '#/lib/game/difficulty'
+import { DEFAULT_DIFFICULTY, type DifficultyPreset, presetToFlags } from '#/lib/game/difficulty'
+import { useImmersionPrefs } from '#/lib/game/immersion-prefs'
 import { getLeadingIndentWidth } from '#/lib/game/indentation'
 import { normalizeSnippet, sanitizeTypedValue } from '#/lib/game/normalization'
 import { calculateRoundMetrics, consumeSnippetInput } from '#/lib/game/scoring'
@@ -23,9 +20,6 @@ import {
   saveStoredPreferences,
   shouldReplaceBest,
 } from '#/lib/game/storage'
-import { createTypingSoundPlayer } from '#/lib/game/typing-sound'
-import { useImmersionPrefs } from '#/lib/game/immersion-prefs'
-import { useEffectiveDebug } from '#/lib/dev/debug-config'
 import type {
   LanguageId,
   LocalBestScore,
@@ -34,6 +28,7 @@ import type {
   RoundStatus,
   Snippet,
 } from '#/lib/game/types'
+import { createTypingSoundPlayer } from '#/lib/game/typing-sound'
 
 type UseTypingRoundOptions = {
   language: LanguageId
@@ -83,11 +78,15 @@ export function useTypingRound({
   // Initial snippet is the day's stable starter for this language — same on
   // server and client (no hydration flash), varies daily/per-language so the
   // opening doesn't feel rehearsed. Every subsequent pick is random.
-  const [currentRawSnippet, setCurrentRawSnippet] = useState<Snippet>(() => getDailyStarter(language))
+  const [currentRawSnippet, setCurrentRawSnippet] = useState<Snippet>(() =>
+    getDailyStarter(language),
+  )
   // Upcoming starts as a skeleton sentinel — same on server and client (no
   // hydration flash), distinct id from current so the SnippetDisplay key-based
   // remount fires when current advances. Real pick lands in the mount effect.
-  const [upcomingRawSnippet, setUpcomingRawSnippet] = useState<Snippet>(() => makeSkeletonSnippet(language))
+  const [upcomingRawSnippet, setUpcomingRawSnippet] = useState<Snippet>(() =>
+    makeSkeletonSnippet(language),
+  )
   const [typedValue, setTypedValue] = useState('')
   const [elapsedMs, setElapsedMs] = useState(0)
   const [correctChars, setCorrectChars] = useState(0)
@@ -196,7 +195,7 @@ export function useTypingRound({
     startedAtRef.current = null
     saveStoredPreferences({ lastLanguage: language })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, difficulty])
+  }, [language, rememberSnippet, currentRawSnippet.id])
 
   useEffect(() => {
     if (status !== 'active') {
@@ -343,7 +342,7 @@ export function useTypingRound({
         // immersion ramp 1:1. Curve params are dev-tunable; gain ceiling and
         // error thunk are user-tunable.
         const denom = Math.max(1, debug.curveDenominator)
-        const runningIntensity = Math.min(1, Math.pow(workingCorrectStreak / denom, debug.curveExponent))
+        const runningIntensity = Math.min(1, (workingCorrectStreak / denom) ** debug.curveExponent)
         const gainCeiling = immersionPrefs.audioGainEscalation ? immersionPrefs.audioGainCeiling : 0
         void typingSoundRef.current.play(workingCorrectStreak, runningIntensity, gainCeiling)
         // Audible counterpart to the visual snap-back: short low thump on the
@@ -459,7 +458,7 @@ export function useTypingRound({
   // Errors zero the streak → intensity drops sharply, snap-back animation
   // exploits that. DEV panel can tune denominator and exponent live.
   const denom = Math.max(1, debug.curveDenominator)
-  const streakIntensity = Math.min(1, Math.pow(correctStreak / denom, debug.curveExponent))
+  const streakIntensity = Math.min(1, (correctStreak / denom) ** debug.curveExponent)
 
   function setTypingSoundEnabled(next: boolean | ((prev: boolean) => boolean)) {
     setTypingSoundEnabledState(next)

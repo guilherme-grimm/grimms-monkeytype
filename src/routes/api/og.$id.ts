@@ -18,12 +18,12 @@ export const Route = createFileRoute('/api/og/$id')({
         try {
           const png = await generateOgPng(id)
           if (!png) {
-            return new Response(TRANSPARENT_PNG, {
+            return new Response(new Uint8Array(TRANSPARENT_PNG), {
               status: 404,
               headers: { 'Content-Type': 'image/png' },
             })
           }
-          return new Response(png, {
+          return new Response(new Uint8Array(png), {
             status: 200,
             headers: {
               'Content-Type': 'image/png',
@@ -32,7 +32,7 @@ export const Route = createFileRoute('/api/og/$id')({
           })
         } catch (err) {
           console.error('[og] render failed', { id, err })
-          return new Response(TRANSPARENT_PNG, {
+          return new Response(new Uint8Array(TRANSPARENT_PNG), {
             status: 500,
             headers: { 'Content-Type': 'image/png' },
           })

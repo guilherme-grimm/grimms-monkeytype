@@ -2,9 +2,9 @@ import { statSync } from 'node:fs'
 import { join, normalize } from 'node:path'
 
 import { migrate } from 'drizzle-orm/libsql/migrator'
-
-import { db } from './src/server/db'
+// @ts-expect-error — generated build output, no .d.ts emitted
 import serverEntry from './dist/server/server.js'
+import { db } from './src/server/db'
 
 await migrate(db, { migrationsFolder: './drizzle' })
 

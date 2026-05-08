@@ -73,7 +73,10 @@ export function saveStoredPreferences(value: StoredPreferences) {
   )
 }
 
-export function shouldReplaceBest(currentBest: LocalBestScore | undefined, nextScore: LocalBestScore) {
+export function shouldReplaceBest(
+  currentBest: LocalBestScore | undefined,
+  nextScore: LocalBestScore,
+) {
   if (!currentBest) {
     return true
   }

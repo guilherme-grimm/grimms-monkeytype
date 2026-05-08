@@ -1,7 +1,6 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-import { ToastProvider } from '#/components/ui/toast'
+import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
 import { DebugTrigger } from '#/components/dev/debug-trigger'
+import { ToastProvider } from '#/components/ui/toast'
 import { useApplyImmersionCssVars } from '#/lib/game/immersion-prefs'
 import appCss from '../styles.css?url'
 
@@ -62,9 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body className="bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ToastProvider>{children}</ToastProvider>
         {import.meta.env.DEV ? <DebugTrigger /> : null}
         <Scripts />
       </body>
@@ -89,7 +86,8 @@ function NotFound() {
           <p className="eyebrow text-[var(--color-accent-glow)]">404</p>
           <h1 className="text-3xl font-semibold terminal-text sm:text-4xl">route not found</h1>
           <p className="max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
-            The path you asked for does not exist in this terminal. Head back and start a run or inspect the leaderboard.
+            The path you asked for does not exist in this terminal. Head back and start a run or
+            inspect the leaderboard.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">

@@ -2,9 +2,8 @@ import { dash } from '@better-auth/infra'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-
-import { db } from './db'
 import * as schema from './auth-schema'
+import { db } from './db'
 
 const githubClientId = process.env.GITHUB_CLIENT_ID
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET
@@ -19,7 +18,9 @@ if (process.env.NODE_ENV === 'production' && baseURL.startsWith('http://localhos
 }
 
 if (process.env.NODE_ENV === 'production' && !process.env.BETTER_AUTH_SECRET) {
-  console.warn('[auth] BETTER_AUTH_SECRET is unset in production. Sessions will not persist correctly.')
+  console.warn(
+    '[auth] BETTER_AUTH_SECRET is unset in production. Sessions will not persist correctly.',
+  )
 }
 
 if (!githubClientId || !githubClientSecret) {

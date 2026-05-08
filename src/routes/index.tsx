@@ -1,21 +1,25 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { useEffect, useState } from 'react'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
 import {
   DEFAULT_DIFFICULTY,
+  type DifficultyPreset,
   difficultyPresets,
   isDifficultyPreset,
   PRESET_TOOLTIPS,
-  type DifficultyPreset,
 } from '#/lib/game/difficulty'
 import { isSupportedLanguage } from '#/lib/game/normalization'
-import { loadLocalBestScores, loadStoredPreferences, saveStoredPreferences } from '#/lib/game/storage'
-import { languages } from '#/lib/game/types'
+import {
+  loadLocalBestScores,
+  loadStoredPreferences,
+  saveStoredPreferences,
+} from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore } from '#/lib/game/types'
+import { languages } from '#/lib/game/types'
 import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -39,9 +43,13 @@ export const Route = createFileRoute('/')({
 function Home() {
   const search = Route.useSearch()
   const { leaderboard } = Route.useLoaderData()
-  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(search.language ?? 'javascript')
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(
+    search.language ?? 'javascript',
+  )
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
-  const [localBestScores, setLocalBestScores] = useState<Partial<Record<LanguageId, LocalBestScore>>>({})
+  const [localBestScores, setLocalBestScores] = useState<
+    Partial<Record<LanguageId, LocalBestScore>>
+  >({})
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const selectedLeaderboard = leaderboard[selectedLanguage] ?? []
@@ -87,7 +95,8 @@ function Home() {
               <span className="terminal-text">for code.</span>
             </h1>
             <p className="max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:text-lg">
-              Write code for fun while the agents do the heavy lifting. Hone the unused skill of touch typing.
+              Write code for fun while the agents do the heavy lifting. Hone the unused skill of
+              touch typing.
             </p>
           </div>
 
@@ -110,6 +119,7 @@ function Home() {
 
                     return (
                       <button
+                        type="button"
                         key={language}
                         className={active ? 'button-primary' : 'button-secondary'}
                         onClick={() => setSelectedLanguage(language)}
@@ -129,6 +139,7 @@ function Home() {
 
                     return (
                       <button
+                        type="button"
                         key={preset}
                         className={`has-tooltip ${active ? 'button-primary' : 'button-secondary'}`}
                         data-tooltip={PRESET_TOOLTIPS[preset]}
@@ -142,10 +153,16 @@ function Home() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Link className="button-primary no-underline" to="/play" search={{ language: selectedLanguage }}>
+                <Link
+                  className="button-primary no-underline"
+                  to="/play"
+                  search={{ language: selectedLanguage }}
+                >
                   Start run
                 </Link>
-                <span className="button-accent pointer-events-none opacity-75">first keypress starts timer</span>
+                <span className="button-accent pointer-events-none opacity-75">
+                  first keypress starts timer
+                </span>
               </div>
             </div>
           </div>
@@ -180,16 +197,25 @@ function Home() {
                 const bestScore = localBestScores[language]
 
                 return (
-                  <article key={language} className="pixel-border bg-[var(--color-panel-soft)] px-4 py-4">
+                  <article
+                    key={language}
+                    className="pixel-border bg-[var(--color-panel-soft)] px-4 py-4"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="eyebrow text-[var(--color-muted)]">{language}</p>
-                        <p className="mt-3 text-3xl font-semibold terminal-text">{bestScore?.score ?? '--'}</p>
+                        <p className="mt-3 text-3xl font-semibold terminal-text">
+                          {bestScore?.score ?? '--'}
+                        </p>
                       </div>
 
                       <div className="text-right text-sm text-[var(--color-muted)]">
                         <p>{bestScore ? `${bestScore.accuracy}% accuracy` : 'no run yet'}</p>
-                        <p>{bestScore ? `${bestScore.snippetsCompleted} snippets` : 'play to save a local best'}</p>
+                        <p>
+                          {bestScore
+                            ? `${bestScore.snippetsCompleted} snippets`
+                            : 'play to save a local best'}
+                        </p>
                       </div>
                     </div>
                   </article>
@@ -211,7 +237,11 @@ function Home() {
               </div>
 
               <div className="mt-3 flex justify-end">
-                <Link className="button-secondary no-underline" to="/leaderboard" search={{ language: selectedLanguage }}>
+                <Link
+                  className="button-secondary no-underline"
+                  to="/leaderboard"
+                  search={{ language: selectedLanguage }}
+                >
                   view full leaderboard
                 </Link>
               </div>
@@ -236,7 +266,9 @@ function Home() {
 
                         <div className="whitespace-nowrap sm:shrink-0 sm:text-right">
                           <p className="text-2xl font-semibold terminal-text">{entry.score}</p>
-                          <p className="mt-1 text-sm text-[var(--color-muted)]">{entry.snippetsCompleted} snippets</p>
+                          <p className="mt-1 text-sm text-[var(--color-muted)]">
+                            {entry.snippetsCompleted} snippets
+                          </p>
                         </div>
                       </div>
                     </article>

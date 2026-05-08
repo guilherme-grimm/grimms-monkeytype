@@ -50,14 +50,14 @@ export function setDebugValue<K extends keyof DebugConfig>(key: K, value: DebugC
   if (!isDev) return
   current = { ...current, [key]: value }
   saveToStorage(current)
-  listeners.forEach((fn) => fn())
+  for (const fn of listeners) fn()
 }
 
 export function resetDebugConfig() {
   if (!isDev) return
   current = { ...DEFAULTS }
   saveToStorage(current)
-  listeners.forEach((fn) => fn())
+  for (const fn of listeners) fn()
 }
 
 function subscribe(fn: () => void) {

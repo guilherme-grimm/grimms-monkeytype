@@ -50,12 +50,14 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
           <div className="space-y-2">
             <p className="eyebrow text-[var(--color-accent-glow)]">sign in</p>
             <p className="text-[var(--color-text-strong)]">
-              Pick a provider. Required only for the global leaderboard — anonymous play stays local.
+              Pick a provider. Required only for the global leaderboard — anonymous play stays
+              local.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
             <button
+              type="button"
               className="button-primary"
               disabled={pending}
               onClick={handleSignIn}
@@ -64,12 +66,10 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
             </button>
           </div>
 
-          {error ? (
-            <p className="text-sm text-[var(--color-accent-glow)]">{error}</p>
-          ) : null}
+          {error ? <p className="text-sm text-[var(--color-accent-glow)]">{error}</p> : null}
 
           <div className="flex justify-end pt-1">
-            <button className="button-secondary" onClick={onClose}>
+            <button type="button" className="button-secondary" onClick={onClose}>
               cancel
             </button>
           </div>

@@ -1,5 +1,5 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { type MutableRefObject, useCallback, useEffect, useRef, useState } from 'react'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { ComboCounter } from '#/components/game/combo-counter'
@@ -7,17 +7,21 @@ import { RankBadge } from '#/components/game/rank-badge'
 import { SnippetDisplay } from '#/components/game/snippet-display'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
-import { useSession } from '#/lib/auth-client'
+import { useToast } from '#/components/ui/toast'
 import { useGlobalTypingKeys } from '#/hooks/useGlobalTypingKeys'
 import { useTypingRound } from '#/hooks/useTypingRound'
-import { DEFAULT_DIFFICULTY, isDifficultyPreset, type DifficultyPreset } from '#/lib/game/difficulty'
-import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
+import { useSession } from '#/lib/auth-client'
+import {
+  DEFAULT_DIFFICULTY,
+  type DifficultyPreset,
+  isDifficultyPreset,
+} from '#/lib/game/difficulty'
 import { isSupportedLanguage } from '#/lib/game/normalization'
+import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
-import { submitScoreServerFn } from '#/server/scores-client'
 import { buildShareText } from '#/lib/share/copy'
-import { useToast } from '#/components/ui/toast'
+import { submitScoreServerFn } from '#/server/scores-client'
 
 export const Route = createFileRoute('/play')({
   validateSearch: (search) => ({
@@ -32,8 +36,13 @@ function PlayRoute() {
   const { data: session } = useSession()
   const { showToast } = useToast()
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
-  const [lastFinishedResult, setLastFinishedResult] = useState<{ metrics: RoundMetrics; elapsedMs: number } | null>(null)
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'anon'>('idle')
+  const [lastFinishedResult, setLastFinishedResult] = useState<{
+    metrics: RoundMetrics
+    elapsedMs: number
+  } | null>(null)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'anon'>(
+    'idle',
+  )
   // Holds the in-flight save promise so the share button can await it without
   // racing the React state machine. Resolves to a scoreId on success or null
   // on anon/error — share callers fall back to text-only when null.
@@ -44,41 +53,44 @@ function PlayRoute() {
     inputRef.current?.setSelectionRange(round.typedValue.length, round.typedValue.length)
   }
 
-  const handleFinish = useCallback(async (result: LocalBestScore, elapsedMs: number) => {
-    setLastFinishedResult({ metrics: result, elapsedMs })
-    if (!session?.user) {
-      setSubmitStatus('anon')
-      savePromiseRef.current = Promise.resolve(null)
-      return
-    }
-
-    setSubmitStatus('saving')
-    const promise = (async (): Promise<string | null> => {
-      try {
-        const res = await submitScoreServerFn({ data: { ...result, elapsedMs } })
-        setSubmitStatus('saved')
-        showToast('Score saved to leaderboard!', 'success')
-        return res.scoreId
-      } catch (err) {
-        setSubmitStatus('error')
-        const status = (err as { status?: number } | null)?.status
-        console.error('Score submission failed', err)
-        if (status === 401) {
-          showToast('Session expired — sign in again to save your score.', 'error')
-        } else if (status === 422) {
-          showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
-        } else if (status && status >= 500) {
-          showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
-        } else {
-          showToast('Failed to save score. Try again.', 'error')
-        }
-        return null
+  const handleFinish = useCallback(
+    async (result: LocalBestScore, elapsedMs: number) => {
+      setLastFinishedResult({ metrics: result, elapsedMs })
+      if (!session?.user) {
+        setSubmitStatus('anon')
+        savePromiseRef.current = Promise.resolve(null)
+        return
       }
-    })()
 
-    savePromiseRef.current = promise
-    await promise
-  }, [session?.user, showToast])
+      setSubmitStatus('saving')
+      const promise = (async (): Promise<string | null> => {
+        try {
+          const res = await submitScoreServerFn({ data: { ...result, elapsedMs } })
+          setSubmitStatus('saved')
+          showToast('Score saved to leaderboard!', 'success')
+          return res.scoreId
+        } catch (err) {
+          setSubmitStatus('error')
+          const status = (err as { status?: number } | null)?.status
+          console.error('Score submission failed', err)
+          if (status === 401) {
+            showToast('Session expired — sign in again to save your score.', 'error')
+          } else if (status === 422) {
+            showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
+          } else if (status && status >= 500) {
+            showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
+          } else {
+            showToast('Failed to save score. Try again.', 'error')
+          }
+          return null
+        }
+      })()
+
+      savePromiseRef.current = promise
+      await promise
+    },
+    [session?.user, showToast],
+  )
 
   // Start with the default so SSR and the first client render match. After
   // hydration, swap in the user's stored preference. Reading localStorage
@@ -133,11 +145,13 @@ function PlayRoute() {
   useEffect(() => {
     requestAnimationFrame(() => focusInput())
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [focusInput])
 
   const progressCount = countMatchingPrefix(round.typedValue, round.currentSnippet.normalized)
   const completionRatio =
-    round.currentSnippet.normalized.length === 0 ? 0 : progressCount / round.currentSnippet.normalized.length
+    round.currentSnippet.normalized.length === 0
+      ? 0
+      : progressCount / round.currentSnippet.normalized.length
   const isActive = round.status === 'active'
   const isFinished = round.status === 'finished'
 
@@ -145,11 +159,17 @@ function PlayRoute() {
     <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <header
         className={`flex flex-wrap items-start justify-between gap-4 pb-5 transition-all duration-200 ${
-          isActive ? 'border-b border-transparent opacity-55' : 'border-b border-[var(--color-border-soft)]'
+          isActive
+            ? 'border-b border-transparent opacity-55'
+            : 'border-b border-[var(--color-border-soft)]'
         }`}
       >
         <div>
-          <Link to="/" className="eyebrow terminal-text no-underline" search={{ language: undefined }}>
+          <Link
+            to="/"
+            className="eyebrow terminal-text no-underline"
+            search={{ language: undefined }}
+          >
             typer.grimm0.dev
           </Link>
           <h1
@@ -178,12 +198,17 @@ function PlayRoute() {
             {difficulty}
           </span>
           <button
+            type="button"
             className={round.typingSoundEnabled ? 'button-accent' : 'button-secondary'}
             onClick={() => round.setTypingSoundEnabled((value) => !value)}
           >
             sound {round.typingSoundEnabled ? 'on' : 'off'}
           </button>
-          <button className="button-secondary" onClick={() => navigate({ to: '/', search: { language } })}>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => navigate({ to: '/', search: { language } })}
+          >
             Change language
           </button>
           <SettingsButton onClick={() => setSettingsOpen(true)} />
@@ -222,7 +247,11 @@ function PlayRoute() {
 
       <section
         className={`run-shell scan-lines relative mt-6 flex min-h-[32rem] flex-col gap-8 px-5 py-7 sm:px-10 sm:py-10 ${
-          isActive ? 'run-shell-active' : isFinished ? 'run-shell-finished panel' : 'run-shell-idle panel'
+          isActive
+            ? 'run-shell-active'
+            : isFinished
+              ? 'run-shell-finished panel'
+              : 'run-shell-idle panel'
         }`}
         data-error-token={round.errorPulseToken}
         data-cleared-token={round.snippetClearedToken}
@@ -242,18 +271,26 @@ function PlayRoute() {
               </div>
               <div className="space-y-4 px-5 py-5 text-sm sm:text-base">
                 <p className="eyebrow text-[var(--color-accent-glow)]">quick rules</p>
-                <p className="text-[var(--color-text-strong)]">Thirty seconds. Type the code exactly as shown.</p>
+                <p className="text-[var(--color-text-strong)]">
+                  Thirty seconds. Type the code exactly as shown.
+                </p>
                 <div className="space-y-2 text-[var(--color-muted)]">
                   <p>Line breaks are visual only.</p>
                   <p>Spaces still count.</p>
                   <p>[Tab] jumps leading indentation, [Esc] aborts the run.</p>
-                  <p>After the result: `Space` runs the same snippet back, `Enter` pulls a new one.</p>
+                  <p>
+                    After the result: `Space` runs the same snippet back, `Enter` pulls a new one.
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <button className="button-primary" onClick={round.dismissOnboarding}>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={round.dismissOnboarding}
+                  >
                     Got it
                   </button>
-                  <button className="button-accent" onClick={round.dismissOnboarding}>
+                  <button type="button" className="button-accent" onClick={round.dismissOnboarding}>
                     Start typing
                   </button>
                 </div>
@@ -285,8 +322,16 @@ function PlayRoute() {
             isActive ? 'run-meta-active' : ''
           }`}
         >
-          <span>{round.status === 'idle' ? 'ready' : round.status === 'active' ? 'live' : 'complete'}</span>
-          <span>{round.bestScore ? `best ${round.bestScore.score}` : session?.user ? 'signed in' : 'no local best yet'}</span>
+          <span>
+            {round.status === 'idle' ? 'ready' : round.status === 'active' ? 'live' : 'complete'}
+          </span>
+          <span>
+            {round.bestScore
+              ? `best ${round.bestScore.score}`
+              : session?.user
+                ? 'signed in'
+                : 'no local best yet'}
+          </span>
         </div>
 
         <div
@@ -316,8 +361,8 @@ function PlayRoute() {
           >
             <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
               {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'}
-	    </span>
-            {/* <button className="button-secondary" onClick={focusInput}> */}
+            </span>
+            {/* <button type="button" className="button-secondary" onClick={focusInput}> */}
             {/*   {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'} */}
             {/* </button> */}
             <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
@@ -327,6 +372,7 @@ function PlayRoute() {
               tab = indent
             </span>
             <button
+              type="button"
               className="button-secondary"
               onClick={round.resetRound}
               title="Abort this run and pull a new snippet [Esc]"
@@ -462,21 +508,27 @@ function ResultPanel(props: {
   }
 
   return (
-    <div className={`result-shell mt-auto p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}>
+    <div
+      className={`result-shell mt-auto p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="eyebrow text-[var(--color-accent-glow)]">run complete</p>
           <h2 className="mt-2 text-3xl font-semibold terminal-text">{props.metrics.score} score</h2>
           <p className="mt-2 score-breakdown text-sm text-[var(--color-muted)]">
             <span className="score-breakdown-base">{props.metrics.baseScore}</span>
-            <span className="score-breakdown-op" aria-hidden="true">×</span>
+            <span className="score-breakdown-op" aria-hidden="true">
+              ×
+            </span>
             <span
               className={`score-breakdown-mult score-breakdown-mult-${props.metrics.mode}`}
               title={`${props.metrics.mode} difficulty multiplier`}
             >
               {props.metrics.multiplier.toFixed(2)}
             </span>
-            <span className="score-breakdown-op" aria-hidden="true">=</span>
+            <span className="score-breakdown-op" aria-hidden="true">
+              =
+            </span>
             <span className="score-breakdown-total">{props.metrics.score}</span>
             <span className="score-breakdown-mode">{props.metrics.mode}</span>
           </p>
@@ -486,35 +538,49 @@ function ResultPanel(props: {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-3">
           <p className="eyebrow text-[var(--color-muted)]">wpm</p>
-          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">{props.metrics.wpm.toFixed(1)}</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">
+            {props.metrics.wpm.toFixed(1)}
+          </p>
         </article>
         <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-3">
           <p className="eyebrow text-[var(--color-muted)]">accuracy</p>
-          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">{props.metrics.accuracy.toFixed(1)}%</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">
+            {props.metrics.accuracy.toFixed(1)}%
+          </p>
         </article>
         <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-3">
           <p className="eyebrow text-[var(--color-muted)]">correct chars</p>
-          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">{props.metrics.correctChars}</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">
+            {props.metrics.correctChars}
+          </p>
         </article>
         <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-3">
           <p className="eyebrow text-[var(--color-muted)]">snippets</p>
-          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">{props.metrics.snippetsCompleted}</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--color-text-strong)]">
+            {props.metrics.snippetsCompleted}
+          </p>
         </article>
       </div>
 
       <div className="mt-4 space-y-2">
         <p className="text-sm text-[var(--color-muted)]">{bestLabel}</p>
         {submitStatusText && (
-          <p className={`text-sm ${
-            props.submitStatus === 'error'
-              ? 'text-[var(--color-accent)]'
-              : props.submitStatus === 'anon'
-                ? 'text-[var(--color-primary-glow)]'
-                : 'text-[var(--color-muted)]'
-          }`}>
+          <p
+            className={`text-sm ${
+              props.submitStatus === 'error'
+                ? 'text-[var(--color-accent)]'
+                : props.submitStatus === 'anon'
+                  ? 'text-[var(--color-primary-glow)]'
+                  : 'text-[var(--color-muted)]'
+            }`}
+          >
             {submitStatusText}
             {props.submitStatus === 'anon' && (
-              <Link to="/" className="underline underline-offset-2 hover:no-underline" search={{ language: undefined }}>
+              <Link
+                to="/"
+                className="underline underline-offset-2 hover:no-underline"
+                search={{ language: undefined }}
+              >
                 Sign in now
               </Link>
             )}
@@ -523,13 +589,24 @@ function ResultPanel(props: {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <button className="button-primary" onClick={props.onReplay} title="Same snippet, fresh timer (Space)">
+        <button
+          type="button"
+          className="button-primary"
+          onClick={props.onReplay}
+          title="Same snippet, fresh timer (Space)"
+        >
           Run it back
         </button>
-        <button className="button-secondary" onClick={props.onNextSnippet} title="Next snippet from the pool (Enter)">
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={props.onNextSnippet}
+          title="Next snippet from the pool (Enter)"
+        >
           Next snippet
         </button>
         <button
+          type="button"
           className="button-secondary"
           onClick={handleCopy}
           aria-busy={awaitingShare && !copied}
@@ -538,6 +615,7 @@ function ResultPanel(props: {
           {copied ? 'copied!' : awaitingShare ? 'preparing…' : 'copy result'}
         </button>
         <button
+          type="button"
           className="button-accent"
           onClick={handleShareX}
           aria-busy={awaitingShare}
@@ -545,7 +623,11 @@ function ResultPanel(props: {
         >
           {awaitingShare ? 'preparing…' : 'share on x'}
         </button>
-        <Link className="button-secondary no-underline" to="/" search={{ language: props.language }}>
+        <Link
+          className="button-secondary no-underline"
+          to="/"
+          search={{ language: props.language }}
+        >
           Back home
         </Link>
       </div>

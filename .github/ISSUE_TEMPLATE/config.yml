@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live demo
+    url: https://typer.grimm0.dev
+    about: Try the app before filing an issue — sometimes "broken" is "loading".
+  # - name: Discussions
+  #   url: https://github.com/guilherme-grimm/grimms-monkeytype/discussions
+  #   about: For questions, ideas, and general chat that aren't bug reports.

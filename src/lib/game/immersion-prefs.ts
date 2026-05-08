@@ -59,13 +59,10 @@ let current: ImmersionPrefs = loadFromStorage()
 const listeners = new Set<() => void>()
 
 function notify() {
-  listeners.forEach((fn) => fn())
+  for (const fn of listeners) fn()
 }
 
-export function setImmersionPref<K extends keyof ImmersionPrefs>(
-  key: K,
-  value: ImmersionPrefs[K],
-) {
+export function setImmersionPref<K extends keyof ImmersionPrefs>(key: K, value: ImmersionPrefs[K]) {
   current = { ...current, [key]: value }
   saveStoredPreferences({ immersion: current })
   notify()
@@ -119,17 +116,35 @@ export function useApplyImmersionCssVars(): void {
     if (typeof document === 'undefined') return
     const body = document.body
 
-    body.style.setProperty('--debug-vignette-darkness', String(prefs.vignette ? prefs.vignetteDarkness : 0))
+    body.style.setProperty(
+      '--debug-vignette-darkness',
+      String(prefs.vignette ? prefs.vignetteDarkness : 0),
+    )
     body.style.setProperty('--debug-vignette-transition', `${prefs.vignetteTransitionMs}ms`)
-    body.style.setProperty('--debug-meta-opacity-dip', String(prefs.chromeDimming ? prefs.metaOpacityDip : 0))
-    body.style.setProperty('--debug-controls-opacity-dip', String(prefs.chromeDimming ? prefs.controlsOpacityDip : 0))
-    body.style.setProperty('--debug-caret-glow-ceiling', `${prefs.caretGlowEscalation ? prefs.caretGlowCeilingPx : 0}px`)
-    body.style.setProperty('--debug-snippet-saturation-lift', String(prefs.snippetSaturation ? prefs.snippetSaturationLift : 0))
-    body.style.setProperty('--debug-snapback-brightness', String(prefs.snapBack ? prefs.snapBackBrightness : 1))
+    body.style.setProperty(
+      '--debug-meta-opacity-dip',
+      String(prefs.chromeDimming ? prefs.metaOpacityDip : 0),
+    )
+    body.style.setProperty(
+      '--debug-controls-opacity-dip',
+      String(prefs.chromeDimming ? prefs.controlsOpacityDip : 0),
+    )
+    body.style.setProperty(
+      '--debug-caret-glow-ceiling',
+      `${prefs.caretGlowEscalation ? prefs.caretGlowCeilingPx : 0}px`,
+    )
+    body.style.setProperty(
+      '--debug-snippet-saturation-lift',
+      String(prefs.snippetSaturation ? prefs.snippetSaturationLift : 0),
+    )
+    body.style.setProperty(
+      '--debug-snapback-brightness',
+      String(prefs.snapBack ? prefs.snapBackBrightness : 1),
+    )
     body.style.setProperty('--debug-snapback-duration', `${prefs.snapBackDurationMs}ms`)
 
     return () => {
-      VAR_NAMES.forEach((name) => body.style.removeProperty(name))
+      for (const name of VAR_NAMES) body.style.removeProperty(name)
     }
   }, [prefs])
 }

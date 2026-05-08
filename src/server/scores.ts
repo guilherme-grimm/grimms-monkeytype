@@ -91,7 +91,13 @@ export async function submitAuthenticatedScore(userId: string, rawInput: SubmitS
     })
     .from(bestScore)
     .innerJoin(score, eq(bestScore.scoreId, score.id))
-    .where(and(eq(bestScore.userId, userId), eq(bestScore.language, input.language), eq(bestScore.mode, input.mode)))
+    .where(
+      and(
+        eq(bestScore.userId, userId),
+        eq(bestScore.language, input.language),
+        eq(bestScore.mode, input.mode),
+      ),
+    )
     .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
     .limit(1)
     .then((rows) => rows[0])

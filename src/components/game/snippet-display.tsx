@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
 import { SKELETON_SNIPPET_ID } from '#/lib/game/snippets'
-import { getWordRegion, type WordRegion } from '#/lib/game/word-regions'
 import type { NormalizedSnippet } from '#/lib/game/types'
+import { getWordRegion, type WordRegion } from '#/lib/game/word-regions'
 
 type SnippetDisplayProps = {
   currentSnippet: NormalizedSnippet
@@ -45,9 +45,16 @@ function getWordRegionClass(region: WordRegion) {
   }
 }
 
-export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: SnippetDisplayProps) {
+export function SnippetDisplay({
+  currentSnippet,
+  upcomingSnippet,
+  typedValue,
+}: SnippetDisplayProps) {
   const activeIndex = typedValue.length
-  const overflow = activeIndex > currentSnippet.normalized.length ? typedValue.slice(currentSnippet.normalized.length) : ''
+  const overflow =
+    activeIndex > currentSnippet.normalized.length
+      ? typedValue.slice(currentSnippet.normalized.length)
+      : ''
   const containerRef = useRef<HTMLDivElement | null>(null)
   const currentSnippetRef = useRef<HTMLPreElement | null>(null)
   const characterRefs = useRef<Record<number, HTMLSpanElement | null>>({})
@@ -98,7 +105,6 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
       ? forwardAnchorElement.offsetLeft + forwardAnchorElement.offsetWidth
       : anchorOffsetRight
     const caretLeftInSnippet = isAtEnd ? anchorOffsetRight : anchorOffsetLeft
-    const caretRightInSnippet = anchorOffsetRight
     const lookBehindPadding = 96
     const lookAheadPadding = 196
     const hysteresis = 48
@@ -110,7 +116,10 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
     let nextScrollLeft = visibleLeft
 
     if (followAnchorRight > rightBoundary) {
-      nextScrollLeft = Math.max(0, followAnchorRight - currentSnippetElement.clientWidth + lookAheadPadding - hysteresis)
+      nextScrollLeft = Math.max(
+        0,
+        followAnchorRight - currentSnippetElement.clientWidth + lookAheadPadding - hysteresis,
+      )
     } else if (caretLeftInSnippet < leftBoundary) {
       nextScrollLeft = Math.max(0, followAnchorLeft - lookBehindPadding + hysteresis)
     }
@@ -118,7 +127,7 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
     if (nextScrollLeft !== visibleLeft) {
       currentSnippetElement.scrollLeft = nextScrollLeft
     }
-  }, [activeIndex, currentSnippet.id, typedValue])
+  }, [activeIndex, currentSnippet.normalized, getForwardAnchorElement])
 
   useLayoutEffect(() => {
     const container = containerRef.current
@@ -147,13 +156,13 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
       height: anchorRect.height,
       visible: true,
     })
-  }, [activeIndex, currentSnippet.id, typedValue])
+  }, [activeIndex])
 
   useLayoutEffect(() => {
     if (currentSnippetRef.current) {
       currentSnippetRef.current.scrollLeft = 0
     }
-  }, [currentSnippet.id])
+  }, [])
 
   return (
     <div ref={containerRef} className="snippet-display relative space-y-4">
@@ -186,7 +195,8 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
               ? 'snippet-char snippet-char-current'
               : getWordRegionClass(wordRegion)
           } else if (typedChar === targetChar) {
-            className = wordRegion === 'past' ? 'snippet-word-past-typed' : 'text-[var(--color-text)]'
+            className =
+              wordRegion === 'past' ? 'snippet-word-past-typed' : 'text-[var(--color-text)]'
           } else {
             className = 'snippet-char snippet-char-error'
           }
@@ -200,7 +210,10 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
           }
 
           if (isSpace && isCurrent) {
-            className = typedChar === undefined ? 'snippet-char snippet-char-current snippet-space' : className
+            className =
+              typedChar === undefined
+                ? 'snippet-char snippet-char-current snippet-space'
+                : className
           }
 
           return (
@@ -217,9 +230,7 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
         })}
 
         {overflow.length > 0 ? (
-          <span className="snippet-char snippet-char-error">
-            {overflow.replaceAll(' ', '·')}
-          </span>
+          <span className="snippet-char snippet-char-error">{overflow.replaceAll(' ', '·')}</span>
         ) : null}
       </pre>
 
@@ -238,7 +249,11 @@ export function SnippetDisplay({ currentSnippet, upcomingSnippet, typedValue }: 
               return renderIgnoredToken(token.value, `${upcomingSnippet.id}-${index}`)
             }
 
-            return <span key={`${upcomingSnippet.id}-${index}`}>{token.value === ' ' ? '·' : token.value}</span>
+            return (
+              <span key={`${upcomingSnippet.id}-${index}`}>
+                {token.value === ' ' ? '·' : token.value}
+              </span>
+            )
           })}
         </pre>
       )}

@@ -1,6 +1,6 @@
 import { DEFAULT_FLAGS, type DifficultyFlags } from './difficulty'
-import { languages } from './types'
 import type { DisplayToken, LanguageId, NormalizedSnippet, Snippet } from './types'
+import { languages } from './types'
 
 export function isSupportedLanguage(value: unknown): value is LanguageId {
   return typeof value === 'string' && (languages as readonly string[]).includes(value)
@@ -45,8 +45,7 @@ function stripLeadingIndentEachLine(source: string, flags: DifficultyFlags) {
     }
 
     if (char === '\t') {
-      // Tabs are always visual.
-      atLineStart = atLineStart // no change
+      // Tabs are always visual; atLineStart is preserved.
       continue
     }
 

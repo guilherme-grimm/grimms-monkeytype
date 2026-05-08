@@ -1,10 +1,10 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { isSupportedLanguage } from '#/lib/game/normalization'
-import { languages, type LanguageId } from '#/lib/game/types'
+import { type LanguageId, languages } from '#/lib/game/types'
 import { auth } from '#/server/auth'
 import { getLeaderboardByLanguage, getUserBestRank, type UserRank } from '#/server/leaderboard'
 
@@ -68,7 +68,8 @@ function LeaderboardPage() {
               <h1 className="text-3xl font-semibold terminal-text sm:text-4xl">Leaderboard</h1>
               <p className="max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
                 All-time best runs per coder, per language. GitHub login is required to appear here.
-                Difficulty multiplier is baked into the score — Hard runs ×1.25, Normal ×1.00, Easy ×0.85.
+                Difficulty multiplier is baked into the score — Hard runs ×1.25, Normal ×1.00, Easy
+                ×0.85.
               </p>
             </div>
 
@@ -83,7 +84,11 @@ function LeaderboardPage() {
               {languages.map((value) => (
                 <Link
                   key={value}
-                  className={value === language ? 'button-primary no-underline' : 'button-secondary no-underline'}
+                  className={
+                    value === language
+                      ? 'button-primary no-underline'
+                      : 'button-secondary no-underline'
+                  }
                   to="/leaderboard"
                   search={{ language: value }}
                 >
@@ -97,7 +102,9 @@ function LeaderboardPage() {
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
                 <p className="eyebrow text-[var(--color-muted)]">standard mode</p>
-                <h2 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">{language} top 25</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
+                  {language} top 25
+                </h2>
               </div>
               <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-primary-glow)]">
                 {entries.length} entries
@@ -165,12 +172,18 @@ function LeaderboardRow({ rank, entry, isSelf }: LeaderboardRowProps) {
               />
             ) : null}
             <div className="min-w-0">
-              <p className="truncate text-lg font-semibold text-[var(--color-text-strong)]">{entry.userName}</p>
+              <p className="truncate text-lg font-semibold text-[var(--color-text-strong)]">
+                {entry.userName}
+              </p>
               <p className="mt-1 text-sm text-[var(--color-muted)]">
-                {entry.wpm.toFixed(1)} wpm • {entry.accuracy.toFixed(1)}% accuracy • {entry.snippetsCompleted} snippets
+                {entry.wpm.toFixed(1)} wpm • {entry.accuracy.toFixed(1)}% accuracy •{' '}
+                {entry.snippetsCompleted} snippets
               </p>
               <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
-                {entry.mode} <span className="text-[var(--color-text-strong)]">×{entry.multiplier.toFixed(2)}</span>
+                {entry.mode}{' '}
+                <span className="text-[var(--color-text-strong)]">
+                  ×{entry.multiplier.toFixed(2)}
+                </span>
               </p>
             </div>
           </div>
@@ -178,9 +191,7 @@ function LeaderboardRow({ rank, entry, isSelf }: LeaderboardRowProps) {
 
         <div className="whitespace-nowrap sm:shrink-0 sm:text-right">
           <p className="text-3xl font-semibold terminal-text">{entry.score}</p>
-          <p className="mt-1 text-xs text-[var(--color-muted)]">
-            base {entry.baseScore}
-          </p>
+          <p className="mt-1 text-xs text-[var(--color-muted)]">base {entry.baseScore}</p>
         </div>
       </div>
     </article>

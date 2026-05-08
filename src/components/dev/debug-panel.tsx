@@ -47,7 +47,7 @@ export function DebugPanel({ open, onClose }: DebugPanelProps) {
     const denom = Math.max(1, config.curveDenominator)
     const samples = [10, 20, 30, 45, 60, 90]
     return samples
-      .map((s) => `${s}: ${Math.min(1, Math.pow(s / denom, config.curveExponent)).toFixed(2)}`)
+      .map((s) => `${s}: ${Math.min(1, (s / denom) ** config.curveExponent).toFixed(2)}`)
       .join('  ')
   }, [config.curveDenominator, config.curveExponent])
 
@@ -95,8 +95,8 @@ export function DebugPanel({ open, onClose }: DebugPanelProps) {
             </button>
           </div>
           <p className="mt-2 text-xs text-[var(--color-muted)]">
-            Master toggle for the streak → intensity curve. Visual + audio knobs
-            live in user settings now.
+            Master toggle for the streak → intensity curve. Visual + audio knobs live in user
+            settings now.
           </p>
         </section>
 
@@ -121,7 +121,9 @@ export function DebugPanel({ open, onClose }: DebugPanelProps) {
                     max={spec.max}
                     step={spec.step}
                     value={value}
-                    onChange={(event) => setDebugValue(spec.key, Number(event.target.value) as never)}
+                    onChange={(event) =>
+                      setDebugValue(spec.key, Number(event.target.value) as never)
+                    }
                     className="debug-slider"
                   />
                 </label>
@@ -129,7 +131,7 @@ export function DebugPanel({ open, onClose }: DebugPanelProps) {
             })}
           </div>
           <pre className="mt-2 whitespace-pre-wrap text-[10px] leading-tight text-[var(--color-muted)]">
-            streak → intensity   {curvePreview}
+            streak → intensity {curvePreview}
           </pre>
         </section>
       </aside>

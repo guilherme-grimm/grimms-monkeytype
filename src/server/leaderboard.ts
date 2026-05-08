@@ -1,7 +1,7 @@
 import { asc, desc, eq } from 'drizzle-orm'
 
 import type { DifficultyPreset } from '#/lib/game/difficulty'
-import { languages, type LanguageId } from '#/lib/game/types'
+import { type LanguageId, languages } from '#/lib/game/types'
 
 import { bestScore, score, user } from './auth-schema'
 import { db } from './db'

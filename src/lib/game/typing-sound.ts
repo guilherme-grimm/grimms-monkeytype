@@ -36,7 +36,7 @@ export function createTypingSoundPlayer() {
       // capped at +6 semitones so it stays in-genre rather than turning into a
       // theremin. Errors reset streak → tone snaps back to baseline next keystroke.
       const semitones = Math.min(6, Math.floor(streak / 10))
-      const pitchMultiplier = Math.pow(2, semitones / 12)
+      const pitchMultiplier = 2 ** (semitones / 12)
       // Gain lift scales with immersion level — quiet at idle, fuller at peak.
       // `gainCeiling` is the max bump above baseline; defaults match the
       // hardcoded +50% but the debug panel can tune it live.

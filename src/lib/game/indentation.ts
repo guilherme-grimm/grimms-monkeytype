@@ -1,11 +1,16 @@
 import type { NormalizedSnippet } from './types'
 
 export function getLeadingIndentWidth(snippet: NormalizedSnippet, activeScoringIndex: number) {
-  if (activeScoringIndex >= snippet.normalized.length || snippet.normalized[activeScoringIndex] !== ' ') {
+  if (
+    activeScoringIndex >= snippet.normalized.length ||
+    snippet.normalized[activeScoringIndex] !== ' '
+  ) {
     return 0
   }
 
-  const tokenIndex = snippet.displayTokens.findIndex((token) => token.scoringIndex === activeScoringIndex)
+  const tokenIndex = snippet.displayTokens.findIndex(
+    (token) => token.scoringIndex === activeScoringIndex,
+  )
 
   if (tokenIndex === -1) {
     return 0

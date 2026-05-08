@@ -30,7 +30,7 @@ describe('normalization across difficulty presets', () => {
     expect(normalizeSource(sample, easy)).toBe('if {return y}')
   })
 
-  test('normal keeps inline spaces and strips newlines (today\'s behavior)', () => {
+  test("normal keeps inline spaces and strips newlines (today's behavior)", () => {
     expect(normalizeSource(sample, normal)).toBe('if {  return y}')
   })
 
