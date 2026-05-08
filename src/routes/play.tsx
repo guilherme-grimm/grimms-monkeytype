@@ -390,7 +390,7 @@ function ResultPanel(props: {
             ? 'Sign in to save scores to the global leaderboard.'
             : null
 
-  const fallbackShareText = `I just scored ${props.metrics.score} points on typer.grimm0.dev!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${props.language}`
+  const fallbackShareText = `I just scored ${props.metrics.score} points!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${props.language}`
   const siteUrl = 'https://typer.grimm0.dev'
 
   // Returns the tweet text to use given a resolved scoreId. When scoreId is

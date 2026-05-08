@@ -6,12 +6,12 @@ import type { Rank } from '#/lib/game/scoring'
 export function buildShareText(rank: Rank, url: string): string {
 	switch (rank) {
 		case 'S':
-			return `S rank on typer.grimm0.dev. catch up. ${url}`
+			return `S rank. catch up. ${url}`
 		case 'A':
 		case 'B':
-			return `${rank} rank on typer.grimm0.dev. ${url}`
+			return `${rank} rank. ${url}`
 		case 'C':
 		case 'D':
-			return `Just ran typer.grimm0.dev. ${url}`
+			return `Just ran a typing sprint. ${url}`
 	}
 }
