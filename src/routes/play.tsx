@@ -142,10 +142,10 @@ function PlayRoute() {
     }
   }, [round.status])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focus on mount only; focusInput closes over fresh refs each render but we intentionally don't re-fire
   useEffect(() => {
     requestAnimationFrame(() => focusInput())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusInput])
+  }, [])
 
   const progressCount = countMatchingPrefix(round.typedValue, round.currentSnippet.normalized)
   const completionRatio =

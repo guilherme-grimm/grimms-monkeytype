@@ -79,6 +79,7 @@ export function SnippetDisplay({
     return null
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate — depend on stable .id, not full object/function refs, to avoid render loops
   useLayoutEffect(() => {
     const currentSnippetElement = currentSnippetRef.current
 
@@ -127,8 +128,9 @@ export function SnippetDisplay({
     if (nextScrollLeft !== visibleLeft) {
       currentSnippetElement.scrollLeft = nextScrollLeft
     }
-  }, [activeIndex, currentSnippet.normalized, getForwardAnchorElement])
+  }, [activeIndex, currentSnippet.id, typedValue])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate — depend on stable .id, not full object refs
   useLayoutEffect(() => {
     const container = containerRef.current
     const currentSnippetElement = currentSnippetRef.current
@@ -156,13 +158,13 @@ export function SnippetDisplay({
       height: anchorRect.height,
       visible: true,
     })
-  }, [activeIndex])
+  }, [activeIndex, currentSnippet.id, typedValue])
 
   useLayoutEffect(() => {
     if (currentSnippetRef.current) {
       currentSnippetRef.current.scrollLeft = 0
     }
-  }, [])
+  }, [currentSnippet.id])
 
   return (
     <div ref={containerRef} className="snippet-display relative space-y-4">

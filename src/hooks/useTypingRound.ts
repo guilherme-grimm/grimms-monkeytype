@@ -160,6 +160,7 @@ export function useTypingRound({
     setShowOnboarding(!(storedPreferences?.hasSeenPlayOnboarding ?? false))
   }, [language])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate — only language/difficulty trigger full reset; including currentRawSnippet.id would loop because the effect itself sets it
   useEffect(() => {
     // First-mount path: the lazy initial state already holds the daily
     // starter. Just record it in history and persist last-language. Skip
@@ -194,8 +195,7 @@ export function useTypingRound({
     previousInputRef.current = ''
     startedAtRef.current = null
     saveStoredPreferences({ lastLanguage: language })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, rememberSnippet, currentRawSnippet.id])
+  }, [language, difficulty])
 
   useEffect(() => {
     if (status !== 'active') {
