@@ -31,8 +31,8 @@ jobs:
       - name: Format check (Biome)
         run: bun run format
 
-      - name: Typecheck
-        run: bunx tsc --noEmit
+      - name: Typecheck (tsgo)
+        run: bun run typecheck
 
       - name: Test (Vitest)
         run: bun run test
