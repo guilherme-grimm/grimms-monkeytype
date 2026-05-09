@@ -17,11 +17,6 @@ export default defineConfig({
     // them explicitly. Vitest's defaults (node_modules, dist, etc.) are
     // re-listed because providing `exclude` replaces the defaults rather than
     // extending them.
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/.{idea,git,cache,output,temp}/**',
-      'e2e/**',
-    ],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.{idea,git,cache,output,temp}/**', 'e2e/**'],
   },
 })
