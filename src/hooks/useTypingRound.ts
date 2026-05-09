@@ -118,6 +118,11 @@ export function useTypingRound({
   )
 
   const startedAtRef = useRef<number | null>(null)
+  // Idempotency guard for finishRound. The existing `status === 'finished'`
+  // check inside finishRound reads a stale closure, so when the polling
+  // interval fires multiple ticks before React flushes the setStatus, onFinish
+  // would be invoked more than once. Ref is reset in every reset/replay path.
+  const hasFinishedRef = useRef(false)
   const previousInputRef = useRef('')
   // Recent snippet IDs (most recent first). Excluded from the random picker
   // so the player doesn't see the same snippet two or three runs in a row.
@@ -194,6 +199,7 @@ export function useTypingRound({
     setFinalMetrics(null)
     previousInputRef.current = ''
     startedAtRef.current = null
+    hasFinishedRef.current = false
     saveStoredPreferences({ lastLanguage: language })
   }, [language, difficulty])
 
@@ -242,9 +248,10 @@ export function useTypingRound({
   }
 
   function finishRound(finalElapsedMs: number) {
-    if (status === 'finished') {
+    if (hasFinishedRef.current) {
       return
     }
+    hasFinishedRef.current = true
 
     const metrics = calculateRoundMetrics({
       correctChars,
@@ -405,6 +412,7 @@ export function useTypingRound({
     const snippet = nextSnippet ?? getRandomSnippet(language, recentSnippetIdsRef.current)
     rememberSnippet(snippet.id)
     startedAtRef.current = null
+    hasFinishedRef.current = false
     previousInputRef.current = ''
     setCurrentRawSnippet(snippet)
     setUpcomingRawSnippet(getRandomSnippet(language, recentSnippetIdsRef.current))

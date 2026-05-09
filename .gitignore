@@ -17,3 +17,7 @@ __unconfig*
 todos.json
 HANDOFF.md
 ROADMAP.md
+
+# Playwright artifacts
+playwright-report
+test-results

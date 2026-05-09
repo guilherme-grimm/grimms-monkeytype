@@ -17,6 +17,7 @@ import {
   isDifficultyPreset,
 } from '#/lib/game/difficulty'
 import { isSupportedLanguage } from '#/lib/game/normalization'
+import { describeSubmissionError, submitFinishedRun } from '#/lib/game/score-submission'
 import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
@@ -56,35 +57,33 @@ function PlayRoute() {
   const handleFinish = useCallback(
     async (result: LocalBestScore, elapsedMs: number) => {
       setLastFinishedResult({ metrics: result, elapsedMs })
-      if (!session?.user) {
+      const isAuthed = !!session?.user
+
+      if (!isAuthed) {
         setSubmitStatus('anon')
         savePromiseRef.current = Promise.resolve(null)
         return
       }
 
       setSubmitStatus('saving')
-      const promise = (async (): Promise<string | null> => {
-        try {
-          const res = await submitScoreServerFn({ data: { ...result, elapsedMs } })
+      const promise = submitFinishedRun({
+        result,
+        elapsedMs,
+        isAuthed,
+        submitScore: submitScoreServerFn,
+      }).then((outcome) => {
+        if (outcome.kind === 'saved') {
           setSubmitStatus('saved')
           showToast('Score saved to leaderboard!', 'success')
-          return res.scoreId
-        } catch (err) {
-          setSubmitStatus('error')
-          const status = (err as { status?: number } | null)?.status
-          console.error('Score submission failed', err)
-          if (status === 401) {
-            showToast('Session expired — sign in again to save your score.', 'error')
-          } else if (status === 422) {
-            showToast('Run rejected by server (invalid metrics). Try a fresh run.', 'error')
-          } else if (status && status >= 500) {
-            showToast(`Server error (${status}) saving score. Try again shortly.`, 'error')
-          } else {
-            showToast('Failed to save score. Try again.', 'error')
-          }
-          return null
+          return outcome.scoreId
         }
-      })()
+        if (outcome.kind === 'error') {
+          setSubmitStatus('error')
+          console.error('Score submission failed', outcome.cause)
+          showToast(describeSubmissionError(outcome.httpStatus), 'error')
+        }
+        return null
+      })
 
       savePromiseRef.current = promise
       await promise
@@ -231,11 +230,11 @@ function PlayRoute() {
         }`}
       >
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span>time {(round.remainingMs / 1000).toFixed(1)}</span>
-          <span>score {round.liveMetrics.score}</span>
-          <span>wpm {round.liveMetrics.wpm.toFixed(1)}</span>
-          <span>accuracy {round.liveMetrics.accuracy}%</span>
-          <span>snippets {round.snippetsCompleted}</span>
+          <span data-testid="time-readout">time {(round.remainingMs / 1000).toFixed(1)}</span>
+          <span data-testid="score-readout">score {round.liveMetrics.score}</span>
+          <span data-testid="wpm-readout">wpm {round.liveMetrics.wpm.toFixed(1)}</span>
+          <span data-testid="accuracy-readout">accuracy {round.liveMetrics.accuracy}%</span>
+          <span data-testid="snippets-completed">snippets {round.snippetsCompleted}</span>
         </div>
         <div className="hidden min-w-40 overflow-hidden bg-[rgba(255,255,255,0.06)] sm:block">
           <div
@@ -301,6 +300,7 @@ function PlayRoute() {
 
         <textarea
           ref={inputRef}
+          data-testid="typing-input"
           value={round.typedValue}
           onChange={(event) => round.handleValueChange(event.target.value)}
           onBlur={() => {
@@ -509,6 +509,7 @@ function ResultPanel(props: {
 
   return (
     <div
+      data-testid="round-finished"
       className={`result-shell mt-auto p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -607,6 +608,7 @@ function ResultPanel(props: {
         </button>
         <button
           type="button"
+          data-testid="share-button"
           className="button-secondary"
           onClick={handleCopy}
           aria-busy={awaitingShare && !copied}

@@ -57,6 +57,14 @@ For UI changes, please test the golden path manually in a browser. Note in your 
 > - If a test fails locally but seems unrelated to your change, open an issue rather than disabling it — silent skips erode the gate.
 > - New behavior should land with a test where it's reasonable to write one. Integration tests for the wired game loop live alongside the hooks/routes they exercise (`*.integration.test.ts(x)`).
 
+### End-to-end (Playwright)
+
+Browser-level specs live in `e2e/`. They hit the production build via Playwright's auto-start `webServer` (`bun run build && bun run start`), so the suite exercises the same artifact users get — no Vite dev-server / HMR shortcuts.
+
+Run locally with `make e2e` (or `bun run e2e`). For interactive debugging — recommended when authoring a new spec — use `make e2e-ui`, which opens the Playwright UI runner with time-travel and locator picker. Specs follow a **read-then-type** pattern: the test reads the active snippet's normalized target from `data-snippet-target`, types it via real keystrokes, and asserts the loop progressed (snippet rotated, score climbed, round finished). Randomness in the snippet pool is intentional; specs must not couple to specific snippet content.
+
+The E2E suite is currently chromium-only and runs locally; CI integration is staged separately once stability is proven.
+
 ## Scope guidance
 
 The project's product shape and active milestones live in [`docs/plans/validated-mango.md`](./docs/plans/validated-mango.md). A few things that look like bugs are actually deliberate:

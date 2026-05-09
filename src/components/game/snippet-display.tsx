@@ -167,7 +167,12 @@ export function SnippetDisplay({
   }, [currentSnippet.id])
 
   return (
-    <div ref={containerRef} className="snippet-display relative space-y-4">
+    <div
+      ref={containerRef}
+      className="snippet-display relative space-y-4"
+      data-testid="current-snippet"
+      data-snippet-target={currentSnippet.normalized}
+    >
       <div
         aria-hidden="true"
         className="typing-caret"
