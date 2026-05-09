@@ -1,12 +1,5 @@
-# =============================================================================
 # CI for grimms-monkeytype
-#
-# !!! IMPORTANT — re: tests !!!
-# `bun run test` is intentionally NOT part of this workflow. The Vitest suite
-# is currently known-flaky, and gating PRs on it produces noise rather than
-# signal. Please do not add a test step here without first stabilizing the
-# suite. See CONTRIBUTING.md ("Heads-up on the test suite") for context.
-# =============================================================================
+# Tests are CI-gated (vitest); see CONTRIBUTING.md for local workflow.
 
 name: CI
 
@@ -40,6 +33,9 @@ jobs:
 
       - name: Typecheck
         run: bunx tsc --noEmit
+
+      - name: Test (Vitest)
+        run: bun run test
 
       - name: Build
         run: bun run build

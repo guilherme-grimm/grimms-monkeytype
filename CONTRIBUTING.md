@@ -49,13 +49,13 @@ The Biome config is intentionally **strict** — it exists to catch slop, especi
 
 For UI changes, please test the golden path manually in a browser. Note in your PR description what you exercised.
 
-## <a id="tests"></a>⚠️ Heads-up on the test suite
+## <a id="tests"></a>The test suite
 
-> **`bun run test` is currently known-flaky and is intentionally NOT run in CI.**
+> **`bun run test` is gated in CI.** Please run it locally before opening a PR.
 >
-> - Do **not** treat red local test runs as a blocker for your PR.
-> - Do **not** open PRs to "fix CI" by gating on tests — the omission is deliberate.
-> - If you want to help **stabilize** the suite, that's a very welcome contribution. Please open an issue first so we can align on the approach before you sink time into it.
+> - The suite uses Vitest with a jsdom environment — see `vitest.config.ts` for the deterministic settings (no retries, no parallelism surprises).
+> - If a test fails locally but seems unrelated to your change, open an issue rather than disabling it — silent skips erode the gate.
+> - New behavior should land with a test where it's reasonable to write one. Integration tests for the wired game loop live alongside the hooks/routes they exercise (`*.integration.test.ts(x)`).
 
 ## Scope guidance
 
