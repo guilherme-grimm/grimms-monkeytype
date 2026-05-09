@@ -16,10 +16,10 @@
 
 ## Checklist
 
-- [ ] `bunx tsc --noEmit` passes
-- [ ] `bun run build` passes
+- [ ] `make verify` passes (lint + format + typecheck + test + build)
+- [ ] `make e2e` passes if you touched the play loop, snippet display, or auth surface
 - [ ] Tested manually in a browser (for UI changes)
 - [ ] README / CONTRIBUTING / docs updated if behavior changed
 - [ ] PR is focused on one logical change
 
-> Note: `bun run test` is currently flaky and **not run in CI** — do not block your PR on red local test runs. See [CONTRIBUTING.md](../CONTRIBUTING.md#tests).
+> Both `verify` and `e2e` jobs gate merge in CI. Run them locally first — the GH runner takes longer.

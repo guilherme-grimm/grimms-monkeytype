@@ -6,7 +6,8 @@ Thanks for taking the time to contribute. This is a small, opinionated project �
 
 ```bash
 bun install
-cp .env.example .env   # fill in GitHub OAuth + better-auth secrets
+cp .env.example .env              # fill in GitHub OAuth + better-auth secrets
+bunx playwright install chromium  # one-time, only needed if you'll run `make e2e`
 bun run dev
 ```
 
@@ -30,19 +31,19 @@ Dev server runs on `:3000`. See [README.md](./README.md) for the full stack over
 
 ## Before opening a PR
 
-These mirror what CI runs:
+CI runs two parallel jobs; both must pass for merge. Mirror them locally:
 
 ```bash
-bun run lint        # Biome lint must pass (0 errors; warnings are fine)
-bun run format      # Biome format check must pass
-bunx tsc --noEmit   # typecheck must pass
-bun run build       # production build must pass
+make verify   # lint + format + typecheck (tsgo) + test (vitest) + build — matches the `verify` job step-for-step
+make e2e      # Playwright chromium spec against the prod build — matches the `e2e` job
 ```
+
+`make verify` is fast (~5s on a warm cache); `make e2e` is slower (~35s — a real round runs in a real browser). If you only touched server code or pure logic, `verify` alone is usually enough; if you touched the play loop, snippet display, the textarea, or auth gating, run both.
 
 If lint or format fails, fix it with:
 
 ```bash
-bun run check:fix   # one-shot: lint + format auto-fix where possible
+make format-fix   # one-shot: lint + format auto-fix where possible
 ```
 
 The Biome config is intentionally **strict** — it exists to catch slop, especially from AI-assisted contributions. If a rule feels wrong for the codebase, raise it in an issue rather than disabling it locally.

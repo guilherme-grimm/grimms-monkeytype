@@ -31,12 +31,24 @@ Dev server runs on `:3000`. A floating bottom-right "DEV" pill opens an immersio
 
 ## Testing
 
-> **⚠️ Heads-up:** `bun run test` is currently **known-flaky** and is **not run in CI**.
-> Do not treat red local runs as a blocker. See [CONTRIBUTING.md](./CONTRIBUTING.md#tests) for context.
+Four deterministic gates are wired into CI. Run any individually:
 
 ```bash
-bun run test
+bun run lint        # Biome lint
+bun run format      # Biome format check
+bun run typecheck   # tsgo (Microsoft's Go-port TS compiler)
+bun run test        # Vitest (unit + integration, jsdom)
+bun run e2e         # Playwright (chromium, hits the prod build)
 ```
+
+Or run the full preflight in one command (mirrors CI step-for-step):
+
+```bash
+make verify         # lint + format + typecheck + test + build
+make e2e            # E2E is a separate gate (slower, kept out of `verify`)
+```
+
+E2E requires a one-time browser install: `bunx playwright install chromium`. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor workflow.
 
 ## Production
 ```bash
