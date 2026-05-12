@@ -30,15 +30,20 @@ import {
 } from '#/lib/game/round-shape'
 import {
   loadLocalBestScores,
+  type LocalBestScoreMap,
   loadStoredPreferences,
   saveStoredPreferences,
 } from '#/lib/game/storage'
-import type { LanguageId, LocalBestScore } from '#/lib/game/types'
+import type { LanguageId } from '#/lib/game/types'
 import { languages } from '#/lib/game/types'
 import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
-  return getLeaderboardPreview(5)
+  const [timed, survival] = await Promise.all([
+    getLeaderboardPreview(5, 'timed'),
+    getLeaderboardPreview(5, 'survival'),
+  ])
+  return { timed, survival }
 })
 
 export const Route = createFileRoute('/')({
@@ -50,23 +55,21 @@ export const Route = createFileRoute('/')({
   validateSearch: (search) =>
     isSupportedLanguage(search.language) ? { language: search.language } : {},
   loader: async () => ({
-    leaderboard: await getLeaderboardPreviewServerFn(),
+    leaderboardByShape: await getLeaderboardPreviewServerFn(),
   }),
   component: Home,
 })
 
 function Home() {
   const search = Route.useSearch()
-  const { leaderboard } = Route.useLoaderData()
+  const { leaderboardByShape } = Route.useLoaderData()
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(
     search.language ?? 'javascript',
   )
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
   const [selectedRoundShape, setSelectedRoundShape] = useState<RoundShape>(DEFAULT_ROUND_SHAPE)
   const [customMods, setCustomMods] = useState<ModSet>(DEFAULT_MODS)
-  const [localBestScores, setLocalBestScores] = useState<
-    Partial<Record<LanguageId, LocalBestScore>>
-  >({})
+  const [localBestScores, setLocalBestScores] = useState<LocalBestScoreMap>({})
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Default to true (= hide dot) for SSR parity; the storage-read effect flips
   // it to false only when the user has never opened the drawer.
@@ -76,7 +79,7 @@ function Home() {
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const { data: session, isPending: sessionPending } = useSession()
 
-  const selectedLeaderboard = leaderboard[selectedLanguage] ?? []
+  const selectedLeaderboard = leaderboardByShape[selectedRoundShape][selectedLanguage] ?? []
 
   useEffect(() => {
     const preferences = loadStoredPreferences()
@@ -281,14 +284,16 @@ function Home() {
 
           <div className="px-5 py-5 sm:px-6">
             <p className="eyebrow text-[var(--color-accent-glow)]">returning visitor</p>
-            <h2 className="mt-3 text-2xl font-semibold terminal-text">Local bests</h2>
+            <h2 className="mt-3 text-2xl font-semibold terminal-text">
+              Local bests · {selectedRoundShape}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              Stored in this browser for now. Global identity and leaderboards come next.
+              Stored in this browser, per mode. Switch round shape above to see the other set.
             </p>
 
             <div className="mt-6 grid gap-3">
               {languages.map((language) => {
-                const bestScore = localBestScores[language]
+                const bestScore = localBestScores[language]?.[selectedRoundShape]
 
                 return (
                   <article
@@ -322,7 +327,7 @@ function Home() {
                 <div>
                   <p className="eyebrow text-[var(--color-accent-glow)]">leaderboard preview</p>
                   <h3 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
-                    {selectedLanguage} top runs
+                    {selectedLanguage} · {selectedRoundShape} top runs
                   </h3>
                 </div>
                 <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-primary-glow)]">
@@ -334,7 +339,7 @@ function Home() {
                 <Link
                   className="button-secondary no-underline"
                   to="/leaderboard"
-                  search={{ language: selectedLanguage }}
+                  search={{ language: selectedLanguage, roundShape: selectedRoundShape }}
                 >
                   view full leaderboard
                 </Link>
@@ -368,7 +373,10 @@ function Home() {
                     </article>
                   ))
                 ) : (
-                  <EmptyLeaderboardState language={selectedLanguage} />
+                  <EmptyLeaderboardState
+                    language={selectedLanguage}
+                    roundShape={selectedRoundShape}
+                  />
                 )}
               </div>
             </div>
@@ -400,17 +408,17 @@ function ActiveModsSummary({ mods, onEdit }: { mods: ModSet; onEdit: () => void 
       </span>
       <span>—</span>
       <span className="min-w-0 flex-1 truncate">{summary}</span>
-      <button type="button" className="button-secondary" onClick={onEdit}>
+      <button type="button" className="button-accent" onClick={onEdit}>
         edit
       </button>
     </div>
   )
 }
 
-function EmptyLeaderboardState(props: { language: LanguageId }) {
+function EmptyLeaderboardState(props: { language: LanguageId; roundShape: RoundShape }) {
   return (
     <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4 text-sm text-[var(--color-muted)]">
-      No leaderboard runs seeded yet for {props.language}.
+      No leaderboard runs seeded yet for {props.language} ({props.roundShape}).
     </article>
   )
 }

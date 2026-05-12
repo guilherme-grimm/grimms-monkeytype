@@ -199,12 +199,12 @@ export function useTypingRound({
   useEffect(() => {
     const storedBests = loadLocalBestScores()
     const storedPreferences = loadStoredPreferences()
-    setBestScore(storedBests[language] ?? null)
+    setBestScore(storedBests[language]?.[roundShape] ?? null)
     // Sound on by default — it's the loudest single immersion lever. Returning
     // users who explicitly turned it off see `false` from storage and stay off.
     setTypingSoundEnabledState(storedPreferences?.typingSoundEnabled ?? true)
     setShowOnboarding(!(storedPreferences?.hasSeenPlayOnboarding ?? false))
-  }, [language])
+  }, [language, roundShape])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate — only language/difficulty trigger full reset; including currentRawSnippet.id would loop because the effect itself sets it
   useEffect(() => {
@@ -313,15 +313,12 @@ export function useTypingRound({
   }, [typingSoundEnabled])
 
   function persistBestScore(result: LocalBestScore) {
-    // Local best is partitioned by language, not (language, roundShape).
-    // Survival rounds have their own server leaderboard; the local 'PB'
-    // surface stays a timed-round affordance to keep the storage shape
-    // simple and avoid timed/survival cross-contamination.
-    if (result.roundShape !== 'timed') {
-      return
-    }
+    // Per-(language, roundShape) bests — timed and survival are tracked
+    // independently so the home panel can mirror the selected mode and the
+    // server leaderboards' segregation.
     const storedBests = loadLocalBestScores()
-    const currentBest = storedBests[result.language]
+    const languageBests = storedBests[result.language] ?? {}
+    const currentBest = languageBests[result.roundShape]
 
     if (!shouldReplaceBest(currentBest, result)) {
       setBestScore(currentBest ?? null)
@@ -331,7 +328,10 @@ export function useTypingRound({
 
     // PB only counts when there was a prior best to beat — first-ever score
     // shouldn't trigger the "NEW BEST" flash, that's just an opening run.
-    saveLocalBestScores({ ...storedBests, [result.language]: result })
+    saveLocalBestScores({
+      ...storedBests,
+      [result.language]: { ...languageBests, [result.roundShape]: result },
+    })
     setBestScore(result)
     setIsPersonalBest(currentBest !== undefined)
   }
