@@ -12,6 +12,8 @@ function buildResult(overrides: Partial<LocalBestScore> = {}): LocalBestScore {
     baseScore: 420,
     multiplier: 1,
     mode: 'normal',
+    roundShape: 'timed',
+    survivalBonus: 0,
     wpm: 60,
     cpm: 300,
     accuracy: 95,
@@ -81,6 +83,66 @@ describe('submitFinishedRun — authenticated run POSTs once with the expected p
     if (outcome.kind === 'error') {
       expect(outcome.httpStatus).toBe(401)
     }
+    expect(submitScore).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('submitFinishedRun — validity gate', () => {
+  it('rejects survival runs that ended during warmup without calling submit', async () => {
+    const submitScore = vi.fn<SubmitScoreFn>()
+
+    const outcome = await submitFinishedRun({
+      result: buildResult({ roundShape: 'survival' }),
+      elapsedMs: 20_000,
+      isAuthed: true,
+      submitScore,
+    })
+
+    expect(outcome).toEqual({ kind: 'rejected', reason: 'too-short' })
+    expect(submitScore).not.toHaveBeenCalled()
+  })
+
+  it('rejects custom-timed strict deaths before the 30s timer without calling submit', async () => {
+    const submitScore = vi.fn<SubmitScoreFn>()
+
+    const outcome = await submitFinishedRun({
+      result: buildResult({ mode: 'custom', roundShape: 'timed' }),
+      elapsedMs: 15_000,
+      isAuthed: true,
+      submitScore,
+      mods: {
+        autoSkipNewlines: true,
+        indentMode: 'auto',
+        strict: true,
+        punctuation: false,
+        numbers: false,
+        caseSensitive: false,
+      },
+    })
+
+    expect(outcome).toEqual({ kind: 'rejected', reason: 'strict-died-early' })
+    expect(submitScore).not.toHaveBeenCalled()
+  })
+
+  it('still submits a full-duration strict-timed run', async () => {
+    const submitScore = vi.fn<SubmitScoreFn>().mockResolvedValue({ scoreId: 'score-ok' })
+
+    const outcome = await submitFinishedRun({
+      result: buildResult({ mode: 'custom', roundShape: 'timed' }),
+      elapsedMs: 30_000,
+      isAuthed: true,
+      submitScore,
+      mods: {
+        autoSkipNewlines: true,
+        indentMode: 'auto',
+        strict: true,
+        punctuation: false,
+        numbers: false,
+        caseSensitive: false,
+      },
+    })
+
+    expect(outcome).toEqual({ kind: 'saved', scoreId: 'score-ok' })
     expect(submitScore).toHaveBeenCalledTimes(1)
   })
 })

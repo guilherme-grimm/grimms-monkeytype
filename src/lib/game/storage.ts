@@ -1,7 +1,14 @@
+import type { RoundShape } from './round-shape'
 import type { LanguageId, LocalBestScore, StoredPreferences } from './types'
 
 const localBestScoresKey = 'typer.local-best-scores'
 const storedPreferencesKey = 'typer.preferences'
+
+// Per-(language, roundShape) keyed map. A legacy value (flat LocalBestScore
+// under `[language]`) is migrated into `[language].timed` on read.
+export type LocalBestScoreMap = Partial<
+  Record<LanguageId, Partial<Record<RoundShape, LocalBestScore>>>
+>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -11,7 +18,13 @@ function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 }
 
-export function loadLocalBestScores(): Partial<Record<LanguageId, LocalBestScore>> {
+// A legacy entry has the `score` field at the language level (i.e. the value
+// IS a LocalBestScore). The new shape nests under a roundShape key.
+function isLegacyEntry(value: unknown): value is LocalBestScore {
+  return isRecord(value) && typeof value.score === 'number'
+}
+
+export function loadLocalBestScores(): LocalBestScoreMap {
   if (!canUseStorage()) {
     return {}
   }
@@ -24,13 +37,27 @@ export function loadLocalBestScores(): Partial<Record<LanguageId, LocalBestScore
     }
 
     const parsed = JSON.parse(rawValue)
-    return isRecord(parsed) ? (parsed as Partial<Record<LanguageId, LocalBestScore>>) : {}
+    if (!isRecord(parsed)) {
+      return {}
+    }
+
+    const result: LocalBestScoreMap = {}
+    for (const [language, entry] of Object.entries(parsed)) {
+      if (isLegacyEntry(entry)) {
+        // Old flat shape — score is from before survival shipped, so it's
+        // a timed run by definition.
+        result[language as LanguageId] = { timed: entry }
+      } else if (isRecord(entry)) {
+        result[language as LanguageId] = entry as Partial<Record<RoundShape, LocalBestScore>>
+      }
+    }
+    return result
   } catch {
     return {}
   }
 }
 
-export function saveLocalBestScores(value: Partial<Record<LanguageId, LocalBestScore>>) {
+export function saveLocalBestScores(value: LocalBestScoreMap) {
   if (!canUseStorage()) {
     return
   }

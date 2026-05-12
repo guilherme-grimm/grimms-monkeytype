@@ -1,4 +1,4 @@
-export const difficultyPresets = ['easy', 'normal', 'hard'] as const
+export const difficultyPresets = ['easy', 'normal', 'hard', 'custom'] as const
 
 export type DifficultyPreset = (typeof difficultyPresets)[number]
 
@@ -27,6 +27,10 @@ export function presetToFlags(preset: DifficultyPreset): DifficultyFlags {
       // (matches IDE muscle memory). 'literal' remains a flag value so
       // independent toggles can opt into it later.
       return { autoSkipNewlines: false, indentMode: 'tab-helper' }
+    case 'custom':
+      // Sentinel — real flags come from the user's ModSet via derivedFlags().
+      // This branch is only reached by code paths not yet migrated to mods.
+      return { autoSkipNewlines: true, indentMode: 'tab-helper' }
   }
 }
 
@@ -38,6 +42,10 @@ export function presetMultiplier(preset: DifficultyPreset): number {
       return 1.0
     case 'hard':
       return 1.25
+    case 'custom':
+      // Sentinel — custom multiplier is derived from the user's ModSet by
+      // modsMultiplier(). callers detect mode==='custom' and route there.
+      return 1.0
   }
 }
 
@@ -50,4 +58,5 @@ export const PRESET_TOOLTIPS: Record<DifficultyPreset, string> = {
   easy: 'Newlines auto-skip. Tab fills indentation. Score ×0.85.',
   normal: 'Newlines auto-skip. Tab fills indentation. Score ×1.00.',
   hard: 'Type every newline. Tab still fills indentation. Score ×1.25.',
+  custom: 'Pick your own mods. Multiplier scales with what you turn on.',
 }

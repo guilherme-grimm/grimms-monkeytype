@@ -34,6 +34,11 @@ export type RoundMetrics = {
   baseScore: number
   multiplier: number
   mode: DifficultyPreset
+  roundShape: RoundShape
+  // Survival accumulates +0.001 multiplier increments mid-run; persisted
+  // separately so future rebalances of base multipliers don't rewrite the
+  // survival contribution. Always 0 for timed rounds.
+  survivalBonus: number
   wpm: number
   cpm: number
   accuracy: number
@@ -50,6 +55,8 @@ export type LocalBestScore = RoundMetrics & {
 
 import type { DifficultyPreset } from './difficulty'
 import type { ImmersionPrefs } from './immersion-prefs'
+import type { ModSet } from './mods'
+import type { RoundShape } from './round-shape'
 
 export type StoredPreferences = {
   lastLanguage?: LanguageId
@@ -57,4 +64,9 @@ export type StoredPreferences = {
   hasSeenPlayOnboarding?: boolean
   difficultyPreset?: DifficultyPreset
   immersion?: Partial<ImmersionPrefs>
+  customMods?: ModSet
+  roundShape?: RoundShape
+  settingsHintSeen?: boolean
+  hasSeenHomeOnboarding?: boolean
+  buttonSoundEnabled?: boolean
 }

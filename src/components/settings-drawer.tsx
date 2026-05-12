@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { type DifficultyPreset, difficultyPresets, PRESET_TOOLTIPS } from '#/lib/game/difficulty'
 import {
@@ -7,6 +7,15 @@ import {
   setImmersionPref,
   useImmersionPrefs,
 } from '#/lib/game/immersion-prefs'
+import { createTypingSoundPlayer, type TypingSoundPlayer } from '#/lib/game/typing-sound'
+import {
+  DEFAULT_MODS,
+  MOD_TOGGLE_LABELS,
+  type ModSet,
+  modsMultiplier,
+  normalizeMods,
+} from '#/lib/game/mods'
+import { DEFAULT_ROUND_SHAPE, type RoundShape, roundShapes } from '#/lib/game/round-shape'
 import { loadStoredPreferences, saveStoredPreferences } from '#/lib/game/storage'
 
 type SettingsDrawerProps = {
@@ -18,6 +27,10 @@ type SettingsDrawerProps = {
   // drawer self-contained (home page case).
   difficulty?: DifficultyPreset
   onDifficultyChange?: (next: DifficultyPreset) => void
+  mods?: ModSet
+  onModsChange?: (next: ModSet) => void
+  roundShape?: RoundShape
+  onRoundShapeChange?: (next: RoundShape) => void
   typingSoundEnabled?: boolean
   onTypingSoundChange?: (next: boolean) => void
 }
@@ -27,6 +40,10 @@ export function SettingsDrawer({
   onClose,
   difficulty: controlledDifficulty,
   onDifficultyChange,
+  mods: controlledMods,
+  onModsChange,
+  roundShape: controlledRoundShape,
+  onRoundShapeChange,
   typingSoundEnabled: controlledSound,
   onTypingSoundChange,
 }: SettingsDrawerProps) {
@@ -35,7 +52,10 @@ export function SettingsDrawer({
   // Self-contained mode (no controlled props): hold local state mirrored from
   // storage so the home-page drawer just works without a parent wiring it up.
   const [localDifficulty, setLocalDifficulty] = useState<DifficultyPreset>('normal')
+  const [localMods, setLocalMods] = useState<ModSet>(DEFAULT_MODS)
+  const [localRoundShape, setLocalRoundShape] = useState<RoundShape>(DEFAULT_ROUND_SHAPE)
   const [localSound, setLocalSound] = useState<boolean>(true)
+  const [buttonSoundEnabled, setButtonSoundEnabled] = useState<boolean>(true)
   // Preview the description for whichever preset is currently hovered/focused;
   // falls back to the selected preset. The floating `.has-tooltip` pattern got
   // clipped by the drawer's overflow boundary, so we render the description
@@ -44,11 +64,21 @@ export function SettingsDrawer({
 
   useEffect(() => {
     if (!open) return
-    if (controlledDifficulty !== undefined && controlledSound !== undefined) return
+    if (
+      controlledDifficulty !== undefined &&
+      controlledSound !== undefined &&
+      controlledMods !== undefined
+    )
+      return
     const stored = loadStoredPreferences()
     if (stored?.difficultyPreset) setLocalDifficulty(stored.difficultyPreset)
     if (typeof stored?.typingSoundEnabled === 'boolean') setLocalSound(stored.typingSoundEnabled)
-  }, [open, controlledDifficulty, controlledSound])
+    if (stored?.customMods) setLocalMods(normalizeMods(stored.customMods))
+    if (stored?.roundShape === 'timed' || stored?.roundShape === 'survival') {
+      setLocalRoundShape(stored.roundShape)
+    }
+    setButtonSoundEnabled(stored?.buttonSoundEnabled !== false)
+  }, [open, controlledDifficulty, controlledSound, controlledMods])
 
   // Esc to close. Scoped to the drawer being open so we don't fight the
   // /play route's Esc-to-reset binding when the drawer isn't shown.
@@ -66,6 +96,8 @@ export function SettingsDrawer({
   }, [open, onClose])
 
   const difficulty = controlledDifficulty ?? localDifficulty
+  const mods = controlledMods ?? localMods
+  const roundShape = controlledRoundShape ?? localRoundShape
   const typingSoundEnabled = controlledSound ?? localSound
 
   function handleDifficultyChange(next: DifficultyPreset) {
@@ -77,6 +109,24 @@ export function SettingsDrawer({
     }
   }
 
+  function handleModsChange(next: ModSet) {
+    if (onModsChange) {
+      onModsChange(next)
+    } else {
+      setLocalMods(next)
+      saveStoredPreferences({ customMods: next })
+    }
+  }
+
+  function handleRoundShapeChange(next: RoundShape) {
+    if (onRoundShapeChange) {
+      onRoundShapeChange(next)
+    } else {
+      setLocalRoundShape(next)
+      saveStoredPreferences({ roundShape: next })
+    }
+  }
+
   function handleSoundChange(next: boolean) {
     if (onTypingSoundChange) {
       onTypingSoundChange(next)
@@ -84,6 +134,11 @@ export function SettingsDrawer({
       setLocalSound(next)
       saveStoredPreferences({ typingSoundEnabled: next })
     }
+  }
+
+  function handleButtonSoundChange(next: boolean) {
+    setButtonSoundEnabled(next)
+    saveStoredPreferences({ buttonSoundEnabled: next })
   }
 
   if (!open) return null
@@ -113,6 +168,27 @@ export function SettingsDrawer({
         </header>
 
         <section className="settings-drawer-section">
+          <p className="eyebrow text-[var(--color-muted)]">round shape</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {roundShapes.map((shape) => (
+              <button
+                key={shape}
+                type="button"
+                className={shape === roundShape ? 'button-primary' : 'button-secondary'}
+                onClick={() => handleRoundShapeChange(shape)}
+              >
+                {shape}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+            {roundShape === 'survival'
+              ? '25s safe warmup, then endless. Streak fuels the meter; after warmup, one mistake or empty meter ends the run. Separate leaderboard.'
+              : 'Classic 30-second sprint. Score = base × difficulty multiplier.'}
+          </p>
+        </section>
+
+        <section className="settings-drawer-section">
           <p className="eyebrow text-[var(--color-muted)]">difficulty</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {difficultyPresets.map((preset) => (
@@ -135,6 +211,8 @@ export function SettingsDrawer({
           </p>
         </section>
 
+        {difficulty === 'custom' && <CustomModsSection mods={mods} onChange={handleModsChange} />}
+
         <section className="settings-drawer-section">
           <p className="eyebrow text-[var(--color-muted)]">typing sound</p>
           <div className="mt-3 flex items-center gap-3">
@@ -147,6 +225,22 @@ export function SettingsDrawer({
             </button>
             <span className="text-sm text-[var(--color-muted)]">
               Phosphor click on every keystroke. Pitches up on streaks.
+            </span>
+          </div>
+        </section>
+
+        <section className="settings-drawer-section">
+          <p className="eyebrow text-[var(--color-muted)]">button sound</p>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              className={buttonSoundEnabled ? 'button-accent' : 'button-secondary'}
+              onClick={() => handleButtonSoundChange(!buttonSoundEnabled)}
+            >
+              sound {buttonSoundEnabled ? 'on' : 'off'}
+            </button>
+            <span className="text-sm text-[var(--color-muted)]">
+              Short pixel blip on every button click. Tone varies by button kind.
             </span>
           </div>
         </section>
@@ -226,11 +320,66 @@ function ImmersionSection() {
       </div>
 
       <div className="mt-4">
-        <p className="eyebrow text-[var(--color-muted)] text-[10px]">audio</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="eyebrow text-[var(--color-muted)] text-[10px]">audio</p>
+          <AudioPreviewButton prefs={prefs} />
+        </div>
         <ImmersionToggles specs={AUDIO_TOGGLES} prefs={prefs} />
         <ImmersionSliders specs={AUDIO_SLIDERS} prefs={prefs} />
       </div>
     </section>
+  )
+}
+
+function AudioPreviewButton({ prefs }: { prefs: ImmersionPrefs }) {
+  const playerRef = useRef<TypingSoundPlayer | null>(null)
+  const [playing, setPlaying] = useState(false)
+
+  async function handlePreview() {
+    if (playing) return
+    setPlaying(true)
+    if (!playerRef.current) {
+      playerRef.current = createTypingSoundPlayer()
+    }
+    const player = playerRef.current
+    const gainCeiling = prefs.audioGainEscalation ? prefs.audioGainCeiling : 0
+    // Four keystrokes with rising streak + intensity so the user hears the
+    // pitch lift and gain ramp end-to-end. Spaced 110ms apart — close enough
+    // to feel like fast typing, far enough that each tone is distinct.
+    const steps = [
+      { streak: 0, intensity: 0 },
+      { streak: 10, intensity: 0.4 },
+      { streak: 20, intensity: 0.7 },
+      { streak: 30, intensity: 1 },
+    ]
+    steps.forEach((step, index) => {
+      setTimeout(() => {
+        void player.play(step.streak, step.intensity, gainCeiling)
+      }, index * 110)
+    })
+    if (prefs.errorThunk) {
+      setTimeout(
+        () => {
+          void player.playError(prefs.errorThunkVolume)
+        },
+        steps.length * 110 + 80,
+      )
+    }
+    const total = steps.length * 110 + (prefs.errorThunk ? 220 : 80)
+    setTimeout(() => setPlaying(false), total)
+  }
+
+  return (
+    <button
+      type="button"
+      className="button-secondary"
+      onClick={handlePreview}
+      disabled={playing}
+      data-no-button-sound
+      title="Play a short streak + error thunk using your current audio settings"
+    >
+      {playing ? 'playing…' : 'test audio'}
+    </button>
   )
 }
 
@@ -302,5 +451,79 @@ function ImmersionSliders({
         )
       })}
     </div>
+  )
+}
+
+const MOD_TOGGLES: Array<{
+  key: Exclude<keyof ModSet, 'indentMode'>
+  hint: string
+}> = [
+  { key: 'autoSkipNewlines', hint: 'tab past empty lines' },
+  { key: 'strict', hint: 'one mistake ends the round' },
+  { key: 'caseSensitive', hint: 'foundation — content tweaks coming' },
+  { key: 'punctuation', hint: 'foundation — content tweaks coming' },
+  { key: 'numbers', hint: 'foundation — content tweaks coming' },
+]
+
+const INDENT_MODES: Array<{ value: ModSet['indentMode']; label: string; hint: string }> = [
+  { value: 'auto', label: 'auto', hint: 'indent fills automatically' },
+  { value: 'tab-helper', label: 'tab-helper', hint: 'tab fills the leading indent' },
+  { value: 'literal', label: 'literal', hint: 'type every space' },
+]
+
+function CustomModsSection({ mods, onChange }: { mods: ModSet; onChange: (next: ModSet) => void }) {
+  const multiplier = modsMultiplier(mods)
+  return (
+    <section className="settings-drawer-section">
+      <div className="flex items-center justify-between gap-3">
+        <p className="eyebrow text-[var(--color-muted)]">custom mods</p>
+        <span
+          className="tabular-nums text-sm text-[var(--color-text-strong)]"
+          title="live multiplier from active mods"
+        >
+          ×{multiplier.toFixed(2)}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-[var(--color-muted)]">
+        Toggle what fights you. Multiplier scales with the heat.
+      </p>
+
+      <div className="mt-3">
+        <p className="eyebrow text-[var(--color-muted)] text-[10px]">indent mode</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {INDENT_MODES.map((spec) => (
+            <button
+              key={spec.value}
+              type="button"
+              className={mods.indentMode === spec.value ? 'button-accent' : 'button-secondary'}
+              title={spec.hint}
+              onClick={() => onChange({ ...mods, indentMode: spec.value })}
+            >
+              {spec.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <p className="eyebrow text-[var(--color-muted)] text-[10px]">toggles</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {MOD_TOGGLES.map((spec) => {
+            const value = mods[spec.key]
+            return (
+              <button
+                key={spec.key}
+                type="button"
+                className={value ? 'button-accent' : 'button-secondary'}
+                title={spec.hint}
+                onClick={() => onChange({ ...mods, [spec.key]: !value })}
+              >
+                {MOD_TOGGLE_LABELS[spec.key]}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </section>
   )
 }

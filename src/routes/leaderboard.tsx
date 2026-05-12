@@ -4,43 +4,50 @@ import { getRequest } from '@tanstack/react-start/server'
 
 import { AuthChip } from '#/components/auth/auth-chip'
 import { isSupportedLanguage } from '#/lib/game/normalization'
+import { isRoundShape, type RoundShape, roundShapes } from '#/lib/game/round-shape'
 import { type LanguageId, languages } from '#/lib/game/types'
 import { auth } from '#/server/auth'
 import { getLeaderboardByLanguage, getUserBestRank, type UserRank } from '#/server/leaderboard'
 
 const getLeaderboardByLanguageServerFn = createServerFn({ method: 'GET' })
-  .inputValidator((data: { language: LanguageId }) => data)
+  .inputValidator((data: { language: LanguageId; roundShape: RoundShape }) => data)
   .handler(async ({ data }) => {
-    return getLeaderboardByLanguage(data.language, 25)
+    return getLeaderboardByLanguage(data.language, 25, data.roundShape)
   })
 
 const getMyRankServerFn = createServerFn({ method: 'GET' })
-  .inputValidator((data: { language: LanguageId }) => data)
+  .inputValidator((data: { language: LanguageId; roundShape: RoundShape }) => data)
   .handler(async ({ data }): Promise<UserRank | null> => {
     const request = getRequest()
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session?.user) return null
-    return getUserBestRank(session.user.id, data.language)
+    return getUserBestRank(session.user.id, data.language, data.roundShape)
   })
 
 export const Route = createFileRoute('/leaderboard')({
-  validateSearch: (search) => ({
+  validateSearch: (search): { language: LanguageId; roundShape?: RoundShape } => ({
     language: isSupportedLanguage(search.language) ? search.language : 'javascript',
+    roundShape: isRoundShape(search.roundShape) ? search.roundShape : undefined,
   }),
-  loaderDeps: ({ search }) => ({ language: search.language }),
+  loaderDeps: ({ search }) => ({
+    language: search.language,
+    roundShape: search.roundShape ?? ('timed' as const),
+  }),
   loader: async ({ deps }) => {
     const [entries, myRank] = await Promise.all([
-      getLeaderboardByLanguageServerFn({ data: { language: deps.language } }),
-      getMyRankServerFn({ data: { language: deps.language } }),
+      getLeaderboardByLanguageServerFn({
+        data: { language: deps.language, roundShape: deps.roundShape },
+      }),
+      getMyRankServerFn({ data: { language: deps.language, roundShape: deps.roundShape } }),
     ])
-    return { entries, myRank }
+    return { entries, myRank, roundShape: deps.roundShape }
   },
   component: LeaderboardPage,
 })
 
 function LeaderboardPage() {
   const { language } = Route.useSearch()
-  const { entries, myRank } = Route.useLoaderData()
+  const { entries, myRank, roundShape } = Route.useLoaderData()
 
   const selfId = myRank?.entry.userId ?? null
   const showRankFooter = myRank !== null && myRank.rank > entries.length
@@ -69,13 +76,34 @@ function LeaderboardPage() {
               <p className="max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
                 All-time best runs per coder, per language. GitHub login is required to appear here.
                 Difficulty multiplier is baked into the score — Hard runs ×1.25, Normal ×1.00, Easy
-                ×0.85.
+                ×0.85. Survival runs live on a separate board because the endless format produces
+                higher scores.
               </p>
             </div>
 
             <Link className="button-secondary no-underline" to="/" search={{ language: undefined }}>
               back home
             </Link>
+          </div>
+
+          <div>
+            <p className="eyebrow text-[var(--color-muted)]">round shape</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {roundShapes.map((value) => (
+                <Link
+                  key={value}
+                  className={
+                    value === roundShape
+                      ? 'button-primary no-underline'
+                      : 'button-secondary no-underline'
+                  }
+                  to="/leaderboard"
+                  search={{ language, roundShape: value }}
+                >
+                  {value}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -90,7 +118,7 @@ function LeaderboardPage() {
                       : 'button-secondary no-underline'
                   }
                   to="/leaderboard"
-                  search={{ language: value }}
+                  search={{ language: value, roundShape }}
                 >
                   {value}
                 </Link>
@@ -101,7 +129,7 @@ function LeaderboardPage() {
           <div className="border-t border-[var(--color-border-soft)] pt-6">
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
-                <p className="eyebrow text-[var(--color-muted)]">standard mode</p>
+                <p className="eyebrow text-[var(--color-muted)]">{roundShape} board</p>
                 <h2 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
                   {language} top 25
                 </h2>

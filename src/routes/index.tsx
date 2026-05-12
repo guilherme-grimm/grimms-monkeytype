@@ -3,8 +3,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 
 import { AuthChip } from '#/components/auth/auth-chip'
+import { HomeOnboarding } from '#/components/home-onboarding'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
+import { useSession } from '#/lib/auth-client'
 import {
   DEFAULT_DIFFICULTY,
   type DifficultyPreset,
@@ -12,18 +14,36 @@ import {
   isDifficultyPreset,
   PRESET_TOOLTIPS,
 } from '#/lib/game/difficulty'
+import {
+  DEFAULT_MODS,
+  MOD_TOGGLE_LABELS,
+  type ModSet,
+  modsMultiplier,
+  normalizeMods,
+} from '#/lib/game/mods'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import {
+  DEFAULT_ROUND_SHAPE,
+  isRoundShape,
+  type RoundShape,
+  roundShapes,
+} from '#/lib/game/round-shape'
+import {
   loadLocalBestScores,
+  type LocalBestScoreMap,
   loadStoredPreferences,
   saveStoredPreferences,
 } from '#/lib/game/storage'
-import type { LanguageId, LocalBestScore } from '#/lib/game/types'
+import type { LanguageId } from '#/lib/game/types'
 import { languages } from '#/lib/game/types'
 import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
-  return getLeaderboardPreview(5)
+  const [timed, survival] = await Promise.all([
+    getLeaderboardPreview(5, 'timed'),
+    getLeaderboardPreview(5, 'survival'),
+  ])
+  return { timed, survival }
 })
 
 export const Route = createFileRoute('/')({
@@ -35,24 +55,31 @@ export const Route = createFileRoute('/')({
   validateSearch: (search) =>
     isSupportedLanguage(search.language) ? { language: search.language } : {},
   loader: async () => ({
-    leaderboard: await getLeaderboardPreviewServerFn(),
+    leaderboardByShape: await getLeaderboardPreviewServerFn(),
   }),
   component: Home,
 })
 
 function Home() {
   const search = Route.useSearch()
-  const { leaderboard } = Route.useLoaderData()
+  const { leaderboardByShape } = Route.useLoaderData()
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(
     search.language ?? 'javascript',
   )
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
-  const [localBestScores, setLocalBestScores] = useState<
-    Partial<Record<LanguageId, LocalBestScore>>
-  >({})
+  const [selectedRoundShape, setSelectedRoundShape] = useState<RoundShape>(DEFAULT_ROUND_SHAPE)
+  const [customMods, setCustomMods] = useState<ModSet>(DEFAULT_MODS)
+  const [localBestScores, setLocalBestScores] = useState<LocalBestScoreMap>({})
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Default to true (= hide dot) for SSR parity; the storage-read effect flips
+  // it to false only when the user has never opened the drawer.
+  const [hasSeenSettingsHint, setHasSeenSettingsHint] = useState(true)
+  // Default false for SSR parity; the storage-read effect flips it on only when
+  // storage confirms the user has never dismissed the welcome modal.
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const { data: session, isPending: sessionPending } = useSession()
 
-  const selectedLeaderboard = leaderboard[selectedLanguage] ?? []
+  const selectedLeaderboard = leaderboardByShape[selectedRoundShape][selectedLanguage] ?? []
 
   useEffect(() => {
     const preferences = loadStoredPreferences()
@@ -61,6 +88,14 @@ function Home() {
     if (isDifficultyPreset(preferences?.difficultyPreset)) {
       setSelectedDifficulty(preferences.difficultyPreset)
     }
+    if (isRoundShape(preferences?.roundShape)) {
+      setSelectedRoundShape(preferences.roundShape)
+    }
+    if (preferences?.customMods) {
+      setCustomMods(normalizeMods(preferences.customMods))
+    }
+    setHasSeenSettingsHint(preferences?.settingsHintSeen === true)
+    setOnboardingOpen(preferences?.hasSeenHomeOnboarding !== true)
     setLocalBestScores(loadLocalBestScores())
   }, [search.language])
 
@@ -73,10 +108,39 @@ function Home() {
     saveStoredPreferences({ difficultyPreset: next })
   }
 
+  function handleRoundShapeChange(next: RoundShape) {
+    setSelectedRoundShape(next)
+    saveStoredPreferences({ roundShape: next })
+  }
+
+  function handleModsChange(next: ModSet) {
+    setCustomMods(next)
+    saveStoredPreferences({ customMods: next })
+  }
+
+  function handleDismissOnboarding() {
+    setOnboardingOpen(false)
+    saveStoredPreferences({ hasSeenHomeOnboarding: true })
+  }
+
   return (
     <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10">
+      <HomeOnboarding
+        open={onboardingOpen && !sessionPending}
+        onDismiss={handleDismissOnboarding}
+        isAnon={!session?.user}
+      />
       <div className="flex items-center justify-end gap-3 pb-4">
-        <SettingsButton onClick={() => setSettingsOpen(true)} />
+        <SettingsButton
+          hasUnread={!hasSeenSettingsHint}
+          onClick={() => {
+            if (!hasSeenSettingsHint) {
+              setHasSeenSettingsHint(true)
+              saveStoredPreferences({ settingsHintSeen: true })
+            }
+            setSettingsOpen(true)
+          }}
+        />
         <AuthChip />
       </div>
 
@@ -85,6 +149,10 @@ function Home() {
         onClose={() => setSettingsOpen(false)}
         difficulty={selectedDifficulty}
         onDifficultyChange={handleDifficultyChange}
+        roundShape={selectedRoundShape}
+        onRoundShapeChange={handleRoundShapeChange}
+        mods={customMods}
+        onModsChange={handleModsChange}
       />
       <section className="hero-grid gap-8">
         <div className="space-y-6">
@@ -132,6 +200,31 @@ function Home() {
               </div>
 
               <div>
+                <p className="eyebrow text-[var(--color-muted)]">round shape</p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {roundShapes.map((shape) => {
+                    const active = shape === selectedRoundShape
+
+                    return (
+                      <button
+                        type="button"
+                        key={shape}
+                        className={active ? 'button-primary' : 'button-secondary'}
+                        onClick={() => handleRoundShapeChange(shape)}
+                      >
+                        {shape}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                  {selectedRoundShape === 'survival'
+                    ? '25s safe warmup, then endless. Streak fuels the meter; after warmup, one mistake or empty meter ends the run.'
+                    : 'Classic 30-second sprint. Score = base × difficulty multiplier.'}
+                </p>
+              </div>
+
+              <div>
                 <p className="eyebrow text-[var(--color-muted)]">difficulty</p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {difficultyPresets.map((preset) => {
@@ -151,6 +244,10 @@ function Home() {
                   })}
                 </div>
               </div>
+
+              {selectedDifficulty === 'custom' && (
+                <ActiveModsSummary mods={customMods} onEdit={() => setSettingsOpen(true)} />
+              )}
 
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -187,14 +284,16 @@ function Home() {
 
           <div className="px-5 py-5 sm:px-6">
             <p className="eyebrow text-[var(--color-accent-glow)]">returning visitor</p>
-            <h2 className="mt-3 text-2xl font-semibold terminal-text">Local bests</h2>
+            <h2 className="mt-3 text-2xl font-semibold terminal-text">
+              Local bests · {selectedRoundShape}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              Stored in this browser for now. Global identity and leaderboards come next.
+              Stored in this browser, per mode. Switch round shape above to see the other set.
             </p>
 
             <div className="mt-6 grid gap-3">
               {languages.map((language) => {
-                const bestScore = localBestScores[language]
+                const bestScore = localBestScores[language]?.[selectedRoundShape]
 
                 return (
                   <article
@@ -228,7 +327,7 @@ function Home() {
                 <div>
                   <p className="eyebrow text-[var(--color-accent-glow)]">leaderboard preview</p>
                   <h3 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
-                    {selectedLanguage} top runs
+                    {selectedLanguage} · {selectedRoundShape} top runs
                   </h3>
                 </div>
                 <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-primary-glow)]">
@@ -240,7 +339,7 @@ function Home() {
                 <Link
                   className="button-secondary no-underline"
                   to="/leaderboard"
-                  search={{ language: selectedLanguage }}
+                  search={{ language: selectedLanguage, roundShape: selectedRoundShape }}
                 >
                   view full leaderboard
                 </Link>
@@ -274,7 +373,10 @@ function Home() {
                     </article>
                   ))
                 ) : (
-                  <EmptyLeaderboardState language={selectedLanguage} />
+                  <EmptyLeaderboardState
+                    language={selectedLanguage}
+                    roundShape={selectedRoundShape}
+                  />
                 )}
               </div>
             </div>
@@ -285,10 +387,38 @@ function Home() {
   )
 }
 
-function EmptyLeaderboardState(props: { language: LanguageId }) {
+function ActiveModsSummary({ mods, onEdit }: { mods: ModSet; onEdit: () => void }) {
+  const multiplier = modsMultiplier(mods)
+  const activeLabels = (Object.keys(MOD_TOGGLE_LABELS) as Array<keyof typeof MOD_TOGGLE_LABELS>)
+    .filter((key) => mods[key])
+    .map((key) => MOD_TOGGLE_LABELS[key])
+  if (mods.indentMode !== 'auto') {
+    activeLabels.push(`indent: ${mods.indentMode}`)
+  }
+  const summary = activeLabels.length > 0 ? activeLabels.join(', ') : 'no toggles active'
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-muted)]">
+      <span className="eyebrow text-[var(--color-muted)]">mods</span>
+      <span
+        className="tabular-nums text-[var(--color-text-strong)]"
+        title="live multiplier from active mods"
+      >
+        ×{multiplier.toFixed(2)}
+      </span>
+      <span>—</span>
+      <span className="min-w-0 flex-1 truncate">{summary}</span>
+      <button type="button" className="button-accent" onClick={onEdit}>
+        edit
+      </button>
+    </div>
+  )
+}
+
+function EmptyLeaderboardState(props: { language: LanguageId; roundShape: RoundShape }) {
   return (
     <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4 text-sm text-[var(--color-muted)]">
-      No leaderboard runs seeded yet for {props.language}.
+      No leaderboard runs seeded yet for {props.language} ({props.roundShape}).
     </article>
   )
 }

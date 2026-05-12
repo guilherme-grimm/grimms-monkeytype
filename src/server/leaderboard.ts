@@ -1,6 +1,7 @@
-import { asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 
 import type { DifficultyPreset } from '#/lib/game/difficulty'
+import { DEFAULT_ROUND_SHAPE, type RoundShape } from '#/lib/game/round-shape'
 import { type LanguageId, languages } from '#/lib/game/types'
 
 import { bestScore, score, user } from './auth-schema'
@@ -12,6 +13,8 @@ export type LeaderboardEntry = {
   userImage: string | null
   language: LanguageId
   mode: DifficultyPreset
+  roundShape: RoundShape
+  survivalBonus: number
   score: number
   baseScore: number
   multiplier: number
@@ -46,6 +49,8 @@ const projection = {
   userImage: user.image,
   language: bestScore.language,
   mode: bestScore.mode,
+  roundShape: bestScore.roundShape,
+  survivalBonus: score.survivalBonus,
   score: score.score,
   baseScore: score.baseScore,
   multiplier: score.multiplier,
@@ -55,7 +60,10 @@ const projection = {
   achievedAt: bestScore.createdAt,
 }
 
-export async function getLeaderboardPreview(limit = 5) {
+export async function getLeaderboardPreview(
+  limit = 5,
+  roundShape: RoundShape = DEFAULT_ROUND_SHAPE,
+) {
   const entries = await Promise.all(
     languages.map(async (language) => {
       const rows = await db
@@ -63,7 +71,7 @@ export async function getLeaderboardPreview(limit = 5) {
         .from(bestScore)
         .innerJoin(user, eq(bestScore.userId, user.id))
         .innerJoin(score, eq(bestScore.scoreId, score.id))
-        .where(eq(bestScore.language, language))
+        .where(and(eq(bestScore.language, language), eq(bestScore.roundShape, roundShape)))
         .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
         .limit(limit * MODE_FANOUT)
 
@@ -75,13 +83,17 @@ export async function getLeaderboardPreview(limit = 5) {
   return Object.fromEntries(entries) as Record<LanguageId, Array<LeaderboardEntry>>
 }
 
-export async function getLeaderboardByLanguage(language: LanguageId, limit = 25) {
+export async function getLeaderboardByLanguage(
+  language: LanguageId,
+  limit = 25,
+  roundShape: RoundShape = DEFAULT_ROUND_SHAPE,
+) {
   const rows = await db
     .select(projection)
     .from(bestScore)
     .innerJoin(user, eq(bestScore.userId, user.id))
     .innerJoin(score, eq(bestScore.scoreId, score.id))
-    .where(eq(bestScore.language, language))
+    .where(and(eq(bestScore.language, language), eq(bestScore.roundShape, roundShape)))
     .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
     .limit(limit * MODE_FANOUT)
 
@@ -103,13 +115,14 @@ export type UserRank = {
 export async function getUserBestRank(
   userId: string,
   language: LanguageId,
+  roundShape: RoundShape = DEFAULT_ROUND_SHAPE,
 ): Promise<UserRank | null> {
   const rows = await db
     .select(projection)
     .from(bestScore)
     .innerJoin(user, eq(bestScore.userId, user.id))
     .innerJoin(score, eq(bestScore.scoreId, score.id))
-    .where(eq(bestScore.language, language))
+    .where(and(eq(bestScore.language, language), eq(bestScore.roundShape, roundShape)))
     .orderBy(desc(score.score), desc(score.accuracy), asc(bestScore.createdAt))
     .limit(RANK_SCAN_CAP)
 

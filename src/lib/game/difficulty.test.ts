@@ -10,8 +10,8 @@ import {
 } from './difficulty'
 
 describe('difficulty', () => {
-  it('exposes the three presets in canonical order', () => {
-    expect(difficultyPresets).toEqual(['easy', 'normal', 'hard'])
+  it('exposes presets in canonical order', () => {
+    expect(difficultyPresets).toEqual(['easy', 'normal', 'hard', 'custom'])
   })
 
   it('defaults to normal', () => {
