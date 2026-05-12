@@ -16,8 +16,14 @@ import {
   type DifficultyPreset,
   isDifficultyPreset,
 } from '#/lib/game/difficulty'
+import { DEFAULT_MODS, type ModSet, modsMultiplier, normalizeMods } from '#/lib/game/mods'
 import { isSupportedLanguage } from '#/lib/game/normalization'
-import { describeSubmissionError, submitFinishedRun } from '#/lib/game/score-submission'
+import { DEFAULT_ROUND_SHAPE, isRoundShape, type RoundShape } from '#/lib/game/round-shape'
+import {
+  describeRejection,
+  describeSubmissionError,
+  submitFinishedRun,
+} from '#/lib/game/score-submission'
 import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
@@ -33,7 +39,6 @@ export const Route = createFileRoute('/play')({
 
 function PlayRoute() {
   const { language } = Route.useSearch()
-  const navigate = Route.useNavigate()
   const { data: session } = useSession()
   const { showToast } = useToast()
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
@@ -54,6 +59,17 @@ function PlayRoute() {
     inputRef.current?.setSelectionRange(round.typedValue.length, round.typedValue.length)
   }
 
+  // Start with the default so SSR and the first client render match. After
+  // hydration, swap in the user's stored preference. Reading localStorage
+  // during render produced a hydration mismatch in <SnippetDisplay> because
+  // the server has no storage but the client did, and the snippet token
+  // shape differs between presets (Hard counts \n, others don't).
+  const [difficulty, setDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
+  const [customMods, setCustomMods] = useState<ModSet>(DEFAULT_MODS)
+  const [roundShape, setRoundShape] = useState<RoundShape>(DEFAULT_ROUND_SHAPE)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [hasSeenSettingsHint, setHasSeenSettingsHint] = useState(true)
+
   const handleFinish = useCallback(
     async (result: LocalBestScore, elapsedMs: number) => {
       setLastFinishedResult({ metrics: result, elapsedMs })
@@ -71,11 +87,17 @@ function PlayRoute() {
         elapsedMs,
         isAuthed,
         submitScore: submitScoreServerFn,
+        mods: result.mode === 'custom' ? customMods : undefined,
       }).then((outcome) => {
         if (outcome.kind === 'saved') {
           setSubmitStatus('saved')
           showToast('Score saved to leaderboard!', 'success')
           return outcome.scoreId
+        }
+        if (outcome.kind === 'rejected') {
+          setSubmitStatus('idle')
+          showToast(describeRejection(outcome.reason), 'info')
+          return null
         }
         if (outcome.kind === 'error') {
           setSubmitStatus('error')
@@ -88,21 +110,21 @@ function PlayRoute() {
       savePromiseRef.current = promise
       await promise
     },
-    [session?.user, showToast],
+    [session?.user, showToast, customMods],
   )
 
-  // Start with the default so SSR and the first client render match. After
-  // hydration, swap in the user's stored preference. Reading localStorage
-  // during render produced a hydration mismatch in <SnippetDisplay> because
-  // the server has no storage but the client did, and the snippet token
-  // shape differs between presets (Hard counts \n, others don't).
-  const [difficulty, setDifficulty] = useState<DifficultyPreset>(DEFAULT_DIFFICULTY)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   useEffect(() => {
     const stored = loadStoredPreferences()
     if (isDifficultyPreset(stored?.difficultyPreset)) {
       setDifficulty(stored.difficultyPreset)
     }
+    if (stored?.customMods) {
+      setCustomMods(normalizeMods(stored.customMods))
+    }
+    if (isRoundShape(stored?.roundShape)) {
+      setRoundShape(stored.roundShape)
+    }
+    setHasSeenSettingsHint(stored?.settingsHintSeen === true)
   }, [])
 
   function handleDifficultyChange(next: DifficultyPreset) {
@@ -113,9 +135,21 @@ function PlayRoute() {
     saveStoredPreferences({ difficultyPreset: next })
   }
 
+  function handleModsChange(next: ModSet) {
+    setCustomMods(next)
+    saveStoredPreferences({ customMods: next })
+  }
+
+  function handleRoundShapeChange(next: RoundShape) {
+    setRoundShape(next)
+    saveStoredPreferences({ roundShape: next })
+  }
+
   const round = useTypingRound({
     language,
     difficulty,
+    mods: customMods,
+    roundShape,
     onSnippetAdvance: () => requestAnimationFrame(focusInput),
     onResetFocus: () => requestAnimationFrame(focusInput),
     onFinish: handleFinish,
@@ -178,39 +212,52 @@ function PlayRoute() {
                 : 'text-2xl text-[var(--color-text-strong)] sm:text-3xl'
             }`}
           >
-            Thirty seconds. No distractions.
+            {roundShape === 'survival'
+              ? '25s practice, then survive. One slip ends it.'
+              : 'Thirty seconds. No distractions.'}
           </h1>
           <p
             className={`mt-2 text-sm transition-opacity duration-200 ${
               isActive ? 'text-[var(--color-muted)]/70' : 'text-[var(--color-muted)]'
             }`}
           >
-            Type straight through. [Tab] only jumps leading indentation.
+            {roundShape === 'survival'
+              ? 'Warmup is safe — practice freely. After 25s the meter starts; one mistake or empty meter ends the run.'
+              : 'Type straight through. [Tab] only jumps leading indentation.'}
           </p>
         </div>
 
         <div className="flex items-center gap-3 text-sm">
-          <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-[var(--color-primary-glow)]">
-            {language}
-          </span>
-          <span className="pixel-border bg-[rgba(47,125,50,0.08)] px-3 py-1 text-[var(--color-muted)]">
-            {difficulty}
-          </span>
-          <button
-            type="button"
-            className={round.typingSoundEnabled ? 'button-accent' : 'button-secondary'}
-            onClick={() => round.setTypingSoundEnabled((value) => !value)}
+          <span
+            className="pixel-border bg-[rgba(47,125,50,0.08)] px-3 py-1 text-[var(--color-muted)]"
+            title="language · difficulty · mode"
           >
-            sound {round.typingSoundEnabled ? 'on' : 'off'}
-          </button>
-          <button
-            type="button"
-            className="button-secondary"
-            onClick={() => navigate({ to: '/', search: { language } })}
-          >
-            Change language
-          </button>
-          <SettingsButton onClick={() => setSettingsOpen(true)} />
+            <span className="text-[var(--color-primary-glow)]">{language}</span>
+            <span className="px-2 text-[var(--color-muted)]/60">·</span>
+            <span>{difficulty}</span>
+            {roundShape === 'survival' && (
+              <>
+                <span className="px-2 text-[var(--color-muted)]/60">·</span>
+                <span className="text-[var(--color-primary-glow)]">survival</span>
+              </>
+            )}
+            {difficulty === 'custom' && (
+              <>
+                <span className="px-2 text-[var(--color-muted)]/60">·</span>
+                <span className="tabular-nums">×{modsMultiplier(customMods).toFixed(2)}</span>
+              </>
+            )}
+          </span>
+          <SettingsButton
+            hasUnread={!hasSeenSettingsHint}
+            onClick={() => {
+              if (!hasSeenSettingsHint) {
+                setHasSeenSettingsHint(true)
+                saveStoredPreferences({ settingsHintSeen: true })
+              }
+              setSettingsOpen(true)
+            }}
+          />
           <AuthChip />
         </div>
       </header>
@@ -220,6 +267,10 @@ function PlayRoute() {
         onClose={() => setSettingsOpen(false)}
         difficulty={difficulty}
         onDifficultyChange={handleDifficultyChange}
+        mods={customMods}
+        onModsChange={handleModsChange}
+        roundShape={roundShape}
+        onRoundShapeChange={handleRoundShapeChange}
         typingSoundEnabled={round.typingSoundEnabled}
         onTypingSoundChange={(next) => round.setTypingSoundEnabled(next)}
       />
@@ -230,11 +281,22 @@ function PlayRoute() {
         }`}
       >
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span data-testid="time-readout">time {(round.remainingMs / 1000).toFixed(1)}</span>
+          {roundShape === 'survival' ? (
+            <span data-testid="survival-meter">
+              {round.survivalActive
+                ? `meter ${(round.survivalMeterMs / 1000).toFixed(2)}s`
+                : `warmup ${Math.max(0, (25000 - round.elapsedMs) / 1000).toFixed(1)}s`}
+            </span>
+          ) : (
+            <span data-testid="time-readout">time {(round.remainingMs / 1000).toFixed(1)}</span>
+          )}
           <span data-testid="score-readout">score {round.liveMetrics.score}</span>
           <span data-testid="wpm-readout">wpm {round.liveMetrics.wpm.toFixed(1)}</span>
           <span data-testid="accuracy-readout">accuracy {round.liveMetrics.accuracy}%</span>
           <span data-testid="snippets-completed">snippets {round.snippetsCompleted}</span>
+          {roundShape === 'survival' && round.survivalBonus > 0 && (
+            <span data-testid="survival-bonus">bonus +{round.survivalBonus.toFixed(3)}</span>
+          )}
         </div>
         <div className="hidden min-w-40 overflow-hidden bg-[rgba(255,255,255,0.06)] sm:block">
           <div
@@ -334,53 +396,7 @@ function PlayRoute() {
           </span>
         </div>
 
-        <div
-          className={`mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center ${isActive ? 'pt-14' : 'pt-4'} ${
-            round.showOnboarding && round.status === 'idle' ? 'opacity-35' : ''
-          }`}
-        >
-          <SnippetDisplay
-            key={round.currentSnippet.id}
-            currentSnippet={round.currentSnippet}
-            upcomingSnippet={round.upcomingSnippet}
-            typedValue={round.typedValue}
-          />
-        </div>
-
-        <ComboCounter
-          streak={round.correctStreak}
-          errorPulseToken={round.errorPulseToken}
-          snippetClearedToken={round.snippetClearedToken}
-        />
-
-        {round.status !== 'finished' || !round.finalMetrics ? (
-          <div
-            className={`run-controls mt-auto flex flex-wrap items-center gap-3 text-sm text-[var(--color-muted)] ${
-              isActive ? 'run-controls-active' : ''
-            }`}
-          >
-            <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
-              {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'}
-            </span>
-            {/* <button type="button" className="button-secondary" onClick={focusInput}> */}
-            {/*   {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'} */}
-            {/* </button> */}
-            <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
-              typed {round.typedValue.length} / {round.currentSnippet.normalized.length}
-            </span>
-            <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
-              tab = indent
-            </span>
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={round.resetRound}
-              title="Abort this run and pull a new snippet [Esc]"
-            >
-              Reset run
-            </button>
-          </div>
-        ) : (
+        {isFinished && round.finalMetrics ? (
           <ResultPanel
             metrics={round.finalMetrics}
             bestScore={round.bestScore}
@@ -392,6 +408,51 @@ function PlayRoute() {
             lastResult={lastFinishedResult}
             savePromiseRef={savePromiseRef}
           />
+        ) : (
+          <>
+            <div
+              className={`mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center ${isActive ? 'pt-14' : 'pt-4'} ${
+                round.showOnboarding && round.status === 'idle' ? 'opacity-35' : ''
+              }`}
+            >
+              <SnippetDisplay
+                key={round.currentSnippet.id}
+                currentSnippet={round.currentSnippet}
+                upcomingSnippet={round.upcomingSnippet}
+                typedValue={round.typedValue}
+              />
+            </div>
+
+            <ComboCounter
+              streak={round.correctStreak}
+              errorPulseToken={round.errorPulseToken}
+              snippetClearedToken={round.snippetClearedToken}
+            />
+
+            <div
+              className={`run-controls mt-auto flex flex-wrap items-center gap-3 text-sm text-[var(--color-muted)] ${
+                isActive ? 'run-controls-active' : ''
+              }`}
+            >
+              <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
+                {round.status === 'idle' ? 'Focus and start typing' : 'Keep typing'}
+              </span>
+              <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
+                typed {round.typedValue.length} / {round.currentSnippet.normalized.length}
+              </span>
+              <span className="pixel-border bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
+                tab = indent
+              </span>
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={round.resetRound}
+                title="Abort this run and pull a new snippet [Esc]"
+              >
+                Reset run
+              </button>
+            </div>
+          </>
         )}
       </section>
     </main>
@@ -510,7 +571,7 @@ function ResultPanel(props: {
   return (
     <div
       data-testid="round-finished"
-      className={`result-shell mt-auto p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}
+      className={`result-shell p-5 sm:p-6 ${props.isPersonalBest ? 'result-shell-pb' : ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

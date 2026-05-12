@@ -1,4 +1,6 @@
 import { DEFAULT_DIFFICULTY, type DifficultyPreset, presetMultiplier } from './difficulty'
+import { DEFAULT_MODS, type ModSet, modsMultiplier } from './mods'
+import { DEFAULT_ROUND_SHAPE, type RoundShape } from './round-shape'
 import type { RoundMetrics } from './types'
 
 export function countMatchingPrefix(typed: string, target: string) {
@@ -94,9 +96,18 @@ export function calculateRoundMetrics(input: {
   elapsedMs: number
   snippetsCompleted: number
   mode?: DifficultyPreset
+  mods?: ModSet
+  roundShape?: RoundShape
+  // Survival accumulates +0.001 multiplier increments mid-run; the final
+  // multiplier persisted on the row stacks this onto the base multiplier.
+  survivalBonus?: number
 }): RoundMetrics {
   const mode = input.mode ?? DEFAULT_DIFFICULTY
-  const multiplier = presetMultiplier(mode)
+  const roundShape = input.roundShape ?? DEFAULT_ROUND_SHAPE
+  const survivalBonus = roundShape === 'survival' ? (input.survivalBonus ?? 0) : 0
+  const baseMultiplier =
+    mode === 'custom' ? modsMultiplier(input.mods ?? DEFAULT_MODS) : presetMultiplier(mode)
+  const multiplier = baseMultiplier + survivalBonus
   const elapsedMinutes = Math.max(input.elapsedMs, 1) / 60000
   const totalTypedChars = input.correctChars + input.incorrectChars
   const cpm = input.correctChars / elapsedMinutes
@@ -109,8 +120,10 @@ export function calculateRoundMetrics(input: {
   return {
     score: Math.round(baseScoreRaw * multiplier),
     baseScore,
-    multiplier,
+    multiplier: Math.round(multiplier * 1000) / 1000,
     mode,
+    roundShape,
+    survivalBonus: Math.round(survivalBonus * 1000) / 1000,
     wpm: Math.round(wpm * 10) / 10,
     cpm: Math.round(cpm),
     accuracy: Math.round(accuracy * 10) / 10,

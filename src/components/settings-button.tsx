@@ -1,15 +1,17 @@
 type SettingsButtonProps = {
   onClick: () => void
+  hasUnread?: boolean
 }
 
-export function SettingsButton({ onClick }: SettingsButtonProps) {
+export function SettingsButton({ onClick, hasUnread = false }: SettingsButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Open settings"
+      aria-label={hasUnread ? 'Open settings (new options available)' : 'Open settings'}
       className="settings-button pixel-border"
     >
+      {hasUnread && <span className="settings-button-dot" aria-hidden="true" />}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"

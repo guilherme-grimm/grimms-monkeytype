@@ -123,6 +123,8 @@ describe('scoring helpers', () => {
       baseScore: 130,
       multiplier: 1,
       mode: 'normal',
+      roundShape: 'timed',
+      survivalBonus: 0,
       wpm: 60,
       cpm: 300,
       accuracy: 90.9,

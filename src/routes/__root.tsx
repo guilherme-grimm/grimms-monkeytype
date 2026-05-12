@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
 import { DebugTrigger } from '#/components/dev/debug-trigger'
 import { ToastProvider } from '#/components/ui/toast'
+import { useGlobalButtonSound } from '#/hooks/useGlobalButtonSound'
 import { useApplyImmersionCssVars } from '#/lib/game/immersion-prefs'
 import appCss from '../styles.css?url'
 
@@ -49,6 +50,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   useApplyImmersionCssVars()
+  useGlobalButtonSound()
   return (
     <html lang="en">
       <head>

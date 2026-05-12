@@ -57,6 +57,13 @@ export const score = sqliteTable('score', {
     .references(() => user.id, { onDelete: 'cascade' }),
   language: text('language').notNull(),
   mode: text('mode').notNull().default('normal'),
+  // JSON-serialized ModSet — only populated when mode === 'custom'. Stored
+  // alongside the multiplier so historical rows can be re-derived if mod
+  // weights change later.
+  mods: text('mods'),
+  // 'timed' | 'survival'. Partition key for the leaderboard alongside mode.
+  roundShape: text('round_shape').notNull().default('timed'),
+  survivalBonus: real('survival_bonus').notNull().default(0),
   score: integer('score').notNull(),
   baseScore: integer('base_score').notNull().default(0),
   multiplier: real('multiplier').notNull().default(1.0),
@@ -79,6 +86,7 @@ export const bestScore = sqliteTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     language: text('language').notNull(),
     mode: text('mode').notNull().default('normal'),
+    roundShape: text('round_shape').notNull().default('timed'),
     scoreId: text('score_id')
       .notNull()
       .references(() => score.id, { onDelete: 'cascade' }),
@@ -86,10 +94,11 @@ export const bestScore = sqliteTable(
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
   },
   (table) => ({
-    userLanguageModeUnique: uniqueIndex('best_score_user_language_mode_unique').on(
+    userLanguageModeShapeUnique: uniqueIndex('best_score_user_language_mode_round_shape_unique').on(
       table.userId,
       table.language,
       table.mode,
+      table.roundShape,
     ),
   }),
 )

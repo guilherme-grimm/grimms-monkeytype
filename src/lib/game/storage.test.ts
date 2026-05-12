@@ -10,6 +10,8 @@ describe('best score replacement', () => {
       baseScore: 300,
       multiplier: 1,
       mode: 'normal' as const,
+      roundShape: 'timed' as const,
+      survivalBonus: 0,
       wpm: 60,
       cpm: 300,
       accuracy: 92,

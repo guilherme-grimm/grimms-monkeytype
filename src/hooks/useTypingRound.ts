@@ -4,7 +4,14 @@ import { roundDurationMs } from '#/lib/game/constants'
 import { DEFAULT_DIFFICULTY, type DifficultyPreset, presetToFlags } from '#/lib/game/difficulty'
 import { useImmersionPrefs } from '#/lib/game/immersion-prefs'
 import { getLeadingIndentWidth } from '#/lib/game/indentation'
+import { DEFAULT_MODS, derivedFlags, type ModSet } from '#/lib/game/mods'
 import { normalizeSnippet, sanitizeTypedValue } from '#/lib/game/normalization'
+import {
+  DEFAULT_ROUND_SHAPE,
+  type RoundShape,
+  SURVIVAL,
+  survivalBonusFromGain,
+} from '#/lib/game/round-shape'
 import { calculateRoundMetrics, consumeSnippetInput } from '#/lib/game/scoring'
 import {
   getDailyStarter,
@@ -33,6 +40,12 @@ import { createTypingSoundPlayer } from '#/lib/game/typing-sound'
 type UseTypingRoundOptions = {
   language: LanguageId
   difficulty?: DifficultyPreset
+  // Only meaningful when difficulty === 'custom'. Fed through to scoring +
+  // normalization so the user's mod toggles drive both flags and multiplier.
+  mods?: ModSet
+  // Orthogonal to difficulty. 'survival' switches the round to endless +
+  // meter-drain; ends on streak break or empty meter. Defaults to 'timed'.
+  roundShape?: RoundShape
   onSnippetAdvance: () => void
   onResetFocus: () => void
   onFinish?: (result: LocalBestScore, elapsedMs: number) => void | Promise<void>
@@ -47,6 +60,11 @@ export type UseTypingRoundResult = {
   finalMetrics: RoundMetrics | null
   remainingMs: number
   elapsedMs: number
+  // Survival meter readout (always present; 0 + inactive when shape='timed').
+  survivalMeterMs: number
+  survivalMeterCapMs: number
+  survivalActive: boolean
+  survivalBonus: number
   snippetsCompleted: number
   bestScore: LocalBestScore | null
   isPersonalBest: boolean
@@ -68,11 +86,17 @@ export type UseTypingRoundResult = {
 export function useTypingRound({
   language,
   difficulty = DEFAULT_DIFFICULTY,
+  mods,
+  roundShape = DEFAULT_ROUND_SHAPE,
   onSnippetAdvance,
   onResetFocus,
   onFinish,
 }: UseTypingRoundOptions): UseTypingRoundResult {
-  const flags = useMemo(() => presetToFlags(difficulty), [difficulty])
+  const effectiveMods = mods ?? DEFAULT_MODS
+  const flags = useMemo(
+    () => (difficulty === 'custom' ? derivedFlags(effectiveMods) : presetToFlags(difficulty)),
+    [difficulty, effectiveMods],
+  )
 
   const [status, setStatus] = useState<RoundStatus>('idle')
   // Initial snippet is the day's stable starter for this language — same on
@@ -107,6 +131,11 @@ export function useTypingRound({
   const [typingSoundEnabled, setTypingSoundEnabledState] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [finalMetrics, setFinalMetrics] = useState<RoundMetrics | null>(null)
+  // Survival reactive state. Refs hold the source of truth (mutated mid-tick
+  // and inside the keystroke handler) and the setters mirror to React for UI.
+  const [survivalMeterMs, setSurvivalMeterMs] = useState(0)
+  const [survivalActive, setSurvivalActive] = useState(false)
+  const [survivalBonus, setSurvivalBonus] = useState(0)
 
   const currentSnippet = useMemo(
     () => normalizeSnippet(currentRawSnippet, flags),
@@ -130,7 +159,19 @@ export function useTypingRound({
   // plenty of variety while still cycling through the full pool over time.
   const recentSnippetIdsRef = useRef<Array<string>>([])
   const typingSoundRef = useRef(createTypingSoundPlayer())
-  const finishRoundRef = useRef<(finalElapsedMs: number) => void>(() => {})
+  // Survival source-of-truth refs. State mirrors these for UI; logic reads
+  // and writes the refs to avoid stale-closure issues across the polling
+  // interval and the synchronous keystroke handler.
+  const survivalMeterRef = useRef(0)
+  const survivalActiveRef = useRef(false)
+  const survivalTotalGainedRef = useRef(0)
+  const survivalBonusRef = useRef(0)
+  const finishRoundRef = useRef<
+    (
+      finalElapsedMs: number,
+      overrides?: { correctChars: number; incorrectChars: number; snippetsCompleted: number },
+    ) => void
+  >(() => {})
 
   // In prod the debug curve params collapse to baked DEFAULTS; in DEV the dev
   // panel mutates them live so we can keep tuning the curve without a reload.
@@ -200,6 +241,13 @@ export function useTypingRound({
     previousInputRef.current = ''
     startedAtRef.current = null
     hasFinishedRef.current = false
+    survivalMeterRef.current = 0
+    survivalActiveRef.current = false
+    survivalTotalGainedRef.current = 0
+    survivalBonusRef.current = 0
+    setSurvivalMeterMs(0)
+    setSurvivalActive(false)
+    setSurvivalBonus(0)
     saveStoredPreferences({ lastLanguage: language })
   }, [language, difficulty])
 
@@ -208,6 +256,7 @@ export function useTypingRound({
       return
     }
 
+    let lastTickAt = performance.now()
     const intervalId = window.setInterval(() => {
       const startedAt = startedAtRef.current
 
@@ -215,7 +264,40 @@ export function useTypingRound({
         return
       }
 
-      const nextElapsedMs = Math.min(roundDurationMs, performance.now() - startedAt)
+      const now = performance.now()
+      const tickDeltaMs = Math.max(0, now - lastTickAt)
+      lastTickAt = now
+
+      if (roundShape === 'survival') {
+        // Endless: no clock-based hard cap. Elapsed reports raw elapsed for
+        // the warmup readout; the meter governs life.
+        const rawElapsed = now - startedAt
+        setElapsedMs(rawElapsed)
+
+        if (rawElapsed >= SURVIVAL.warmupMs) {
+          if (!survivalActiveRef.current) {
+            survivalActiveRef.current = true
+            survivalMeterRef.current = SURVIVAL.meterCapMs
+            setSurvivalActive(true)
+            setSurvivalMeterMs(SURVIVAL.meterCapMs)
+            return
+          }
+
+          survivalMeterRef.current = Math.max(
+            0,
+            survivalMeterRef.current - tickDeltaMs * SURVIVAL.drainPerMs,
+          )
+          setSurvivalMeterMs(survivalMeterRef.current)
+
+          if (survivalMeterRef.current <= 0) {
+            finishRoundRef.current(rawElapsed)
+          }
+        }
+        return
+      }
+
+      // Timed (default): existing behavior.
+      const nextElapsedMs = Math.min(roundDurationMs, now - startedAt)
       setElapsedMs(nextElapsedMs)
 
       if (nextElapsedMs >= roundDurationMs) {
@@ -224,13 +306,20 @@ export function useTypingRound({
     }, 50)
 
     return () => window.clearInterval(intervalId)
-  }, [status])
+  }, [status, roundShape])
 
   useEffect(() => {
     saveStoredPreferences({ typingSoundEnabled })
   }, [typingSoundEnabled])
 
   function persistBestScore(result: LocalBestScore) {
+    // Local best is partitioned by language, not (language, roundShape).
+    // Survival rounds have their own server leaderboard; the local 'PB'
+    // surface stays a timed-round affordance to keep the storage shape
+    // simple and avoid timed/survival cross-contamination.
+    if (result.roundShape !== 'timed') {
+      return
+    }
     const storedBests = loadLocalBestScores()
     const currentBest = storedBests[result.language]
 
@@ -247,18 +336,28 @@ export function useTypingRound({
     setIsPersonalBest(currentBest !== undefined)
   }
 
-  function finishRound(finalElapsedMs: number) {
+  function finishRound(
+    finalElapsedMs: number,
+    overrides?: {
+      correctChars: number
+      incorrectChars: number
+      snippetsCompleted: number
+    },
+  ) {
     if (hasFinishedRef.current) {
       return
     }
     hasFinishedRef.current = true
 
     const metrics = calculateRoundMetrics({
-      correctChars,
-      incorrectChars,
+      correctChars: overrides?.correctChars ?? correctChars,
+      incorrectChars: overrides?.incorrectChars ?? incorrectChars,
       elapsedMs: finalElapsedMs,
-      snippetsCompleted,
+      snippetsCompleted: overrides?.snippetsCompleted ?? snippetsCompleted,
       mode: difficulty,
+      mods: effectiveMods,
+      roundShape,
+      survivalBonus: survivalBonusRef.current,
     })
 
     const result: LocalBestScore = {
@@ -372,6 +471,41 @@ export function useTypingRound({
       previousInputRef.current = workingTypedValue
       setTypedValue(workingTypedValue)
 
+      // Survival meter gain — only while the active phase is engaged.
+      // Banks survivalBonusRef once total gained crosses threshold steps.
+      if (roundShape === 'survival' && survivalActiveRef.current) {
+        const correctAdded = Math.max(0, workingCorrectChars - correctChars)
+        if (correctAdded > 0) {
+          const gain = correctAdded * SURVIVAL.gainPerStreakKeystroke
+          survivalMeterRef.current = Math.min(SURVIVAL.meterCapMs, survivalMeterRef.current + gain)
+          survivalTotalGainedRef.current += gain
+          setSurvivalMeterMs(survivalMeterRef.current)
+
+          const nextBonus = survivalBonusFromGain(survivalTotalGainedRef.current)
+          if (nextBonus !== survivalBonusRef.current) {
+            survivalBonusRef.current = nextBonus
+            setSurvivalBonus(nextBonus)
+          }
+        }
+      }
+
+      // End-of-run conditions evaluated together so a single sawError can
+      // trigger either the strict-mod path or the survival path with the
+      // same pre-write working counts.
+      const endOnError =
+        sawError &&
+        ((effectiveMods.strict && difficulty === 'custom') ||
+          (roundShape === 'survival' && survivalActiveRef.current))
+      if (endOnError) {
+        const startedAt = startedAtRef.current ?? performance.now()
+        const elapsed = performance.now() - startedAt
+        finishRoundRef.current(elapsed, {
+          correctChars: workingCorrectChars,
+          incorrectChars: workingIncorrectChars,
+          snippetsCompleted: snippetsCompleted + snippetsAdvanced,
+        })
+      }
+
       if (snippetsAdvanced > 0) {
         recentSnippetIdsRef.current = workingRecentSnippetIds
         setSnippetsCompleted((value) => value + snippetsAdvanced)
@@ -425,6 +559,13 @@ export function useTypingRound({
     setIsPersonalBest(false)
     setStatus('idle')
     setFinalMetrics(null)
+    survivalMeterRef.current = 0
+    survivalActiveRef.current = false
+    survivalTotalGainedRef.current = 0
+    survivalBonusRef.current = 0
+    setSurvivalMeterMs(0)
+    setSurvivalActive(false)
+    setSurvivalBonus(0)
     onResetFocus()
 
     if (initialInput) {
@@ -457,6 +598,9 @@ export function useTypingRound({
     elapsedMs,
     snippetsCompleted,
     mode: difficulty,
+    mods: effectiveMods,
+    roundShape,
+    survivalBonus,
   })
 
   const remainingMs = Math.max(0, roundDurationMs - elapsedMs)
@@ -481,6 +625,10 @@ export function useTypingRound({
     finalMetrics,
     remainingMs,
     elapsedMs,
+    survivalMeterMs,
+    survivalMeterCapMs: SURVIVAL.meterCapMs,
+    survivalActive,
+    survivalBonus,
     snippetsCompleted,
     bestScore,
     isPersonalBest,
