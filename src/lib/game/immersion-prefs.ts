@@ -55,20 +55,32 @@ function loadFromStorage(): ImmersionPrefs {
   return { ...IMMERSION_DEFAULTS, ...stored.immersion }
 }
 
-let current: ImmersionPrefs = loadFromStorage()
+let current: ImmersionPrefs = IMMERSION_DEFAULTS
+let loadedFromStorage = false
 const listeners = new Set<() => void>()
+
+function syncFromStorageOnce() {
+  if (loadedFromStorage || typeof window === 'undefined') {
+    return
+  }
+
+  current = loadFromStorage()
+  loadedFromStorage = true
+}
 
 function notify() {
   for (const fn of listeners) fn()
 }
 
 export function setImmersionPref<K extends keyof ImmersionPrefs>(key: K, value: ImmersionPrefs[K]) {
+  loadedFromStorage = true
   current = { ...current, [key]: value }
   saveStoredPreferences({ immersion: current })
   notify()
 }
 
 export function resetImmersionPrefs() {
+  loadedFromStorage = true
   current = { ...IMMERSION_DEFAULTS }
   saveStoredPreferences({ immersion: current })
   notify()
@@ -82,6 +94,7 @@ function subscribe(fn: () => void) {
 }
 
 function getSnapshot() {
+  syncFromStorageOnce()
   return current
 }
 
@@ -114,37 +127,37 @@ export function useApplyImmersionCssVars(): void {
   const prefs = useImmersionPrefs()
   useEffect(() => {
     if (typeof document === 'undefined') return
-    const body = document.body
+    const root = document.documentElement
 
-    body.style.setProperty(
+    root.style.setProperty(
       '--debug-vignette-darkness',
       String(prefs.vignette ? prefs.vignetteDarkness : 0),
     )
-    body.style.setProperty('--debug-vignette-transition', `${prefs.vignetteTransitionMs}ms`)
-    body.style.setProperty(
+    root.style.setProperty('--debug-vignette-transition', `${prefs.vignetteTransitionMs}ms`)
+    root.style.setProperty(
       '--debug-meta-opacity-dip',
       String(prefs.chromeDimming ? prefs.metaOpacityDip : 0),
     )
-    body.style.setProperty(
+    root.style.setProperty(
       '--debug-controls-opacity-dip',
       String(prefs.chromeDimming ? prefs.controlsOpacityDip : 0),
     )
-    body.style.setProperty(
+    root.style.setProperty(
       '--debug-caret-glow-ceiling',
       `${prefs.caretGlowEscalation ? prefs.caretGlowCeilingPx : 0}px`,
     )
-    body.style.setProperty(
+    root.style.setProperty(
       '--debug-snippet-saturation-lift',
       String(prefs.snippetSaturation ? prefs.snippetSaturationLift : 0),
     )
-    body.style.setProperty(
+    root.style.setProperty(
       '--debug-snapback-brightness',
       String(prefs.snapBack ? prefs.snapBackBrightness : 1),
     )
-    body.style.setProperty('--debug-snapback-duration', `${prefs.snapBackDurationMs}ms`)
+    root.style.setProperty('--debug-snapback-duration', `${prefs.snapBackDurationMs}ms`)
 
     return () => {
-      for (const name of VAR_NAMES) body.style.removeProperty(name)
+      for (const name of VAR_NAMES) root.style.removeProperty(name)
     }
   }, [prefs])
 }

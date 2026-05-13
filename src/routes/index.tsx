@@ -45,6 +45,7 @@ const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(
   ])
   return { timed, survival }
 })
+const REPO_URL = 'https://github.com/guilherme-grimm/grimms-monkeytype'
 
 export const Route = createFileRoute('/')({
   // Only emit the `language` key when it's a real value — returning
@@ -269,6 +270,23 @@ function Home() {
             <span>line breaks are visual</span>
             <span>spaces still count</span>
             <span>tab jumps indent</span>
+          </div>
+
+          <div className="panel-soft max-w-2xl px-4 py-4 sm:px-5">
+            <p className="eyebrow text-[var(--color-accent-glow)]">open source</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--color-muted)] sm:text-base">
+              Built in public. Read the code, file issues, or fork it into your own typing arena.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                className="button-secondary no-underline"
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                github repo
+              </a>
+            </div>
           </div>
         </div>
 
