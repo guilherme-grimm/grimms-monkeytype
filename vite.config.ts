@@ -7,6 +7,10 @@ import viteReact from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 const config = defineConfig({
+  build: {
+    cssTarget: 'safari15',
+    target: ['es2020', 'safari15'],
+  },
   resolve: { tsconfigPaths: true },
   plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
   // @resvg/resvg-js loads native .node binaries that Vite/rolldown cannot

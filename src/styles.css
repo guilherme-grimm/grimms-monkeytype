@@ -77,12 +77,16 @@ button {
 
 .scan-lines {
   position: relative;
-  /* `overflow: clip` (vs hidden) still contains the scanline pseudo-element
-     but lets `overflow-clip-margin` permit short decorations like floating
-     tooltips on edge-positioned children to escape the panel border. The
-     pseudo-element is `inset: 0` so it never extends past the panel anyway. */
-  overflow: clip;
-  overflow-clip-margin: 12rem;
+  overflow: hidden;
+}
+
+@supports (overflow: clip) {
+  .scan-lines {
+    /* Prefer clip where supported so decorative affordances can peek past the
+       panel edge without reintroducing the Safari clipping bugs from first paint. */
+    overflow: clip;
+    overflow-clip-margin: 12rem;
+  }
 }
 
 .scan-lines::before {
@@ -873,10 +877,16 @@ button {
   inset: 0;
   z-index: 60;
   background: rgba(2, 6, 4, 0.72);
-  backdrop-filter: blur(2px);
   display: flex;
   justify-content: flex-end;
   animation: settings-drawer-fade 180ms ease-out;
+}
+
+@supports ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px))) {
+  .settings-drawer-backdrop {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
 }
 
 @keyframes settings-drawer-fade {

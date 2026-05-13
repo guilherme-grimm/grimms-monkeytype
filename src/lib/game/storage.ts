@@ -14,8 +14,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function canUseStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
 }
 
 // A legacy entry has the `score` field at the language level (i.e. the value
@@ -25,12 +33,14 @@ function isLegacyEntry(value: unknown): value is LocalBestScore {
 }
 
 export function loadLocalBestScores(): LocalBestScoreMap {
-  if (!canUseStorage()) {
+  const storage = getStorage()
+
+  if (!storage) {
     return {}
   }
 
   try {
-    const rawValue = window.localStorage.getItem(localBestScoresKey)
+    const rawValue = storage.getItem(localBestScoresKey)
 
     if (!rawValue) {
       return {}
@@ -58,20 +68,28 @@ export function loadLocalBestScores(): LocalBestScoreMap {
 }
 
 export function saveLocalBestScores(value: LocalBestScoreMap) {
-  if (!canUseStorage()) {
+  const storage = getStorage()
+
+  if (!storage) {
     return
   }
 
-  window.localStorage.setItem(localBestScoresKey, JSON.stringify(value))
+  try {
+    storage.setItem(localBestScoresKey, JSON.stringify(value))
+  } catch {
+    return
+  }
 }
 
 export function loadStoredPreferences(): StoredPreferences | null {
-  if (!canUseStorage()) {
+  const storage = getStorage()
+
+  if (!storage) {
     return null
   }
 
   try {
-    const rawValue = window.localStorage.getItem(storedPreferencesKey)
+    const rawValue = storage.getItem(storedPreferencesKey)
 
     if (!rawValue) {
       return null
@@ -85,19 +103,25 @@ export function loadStoredPreferences(): StoredPreferences | null {
 }
 
 export function saveStoredPreferences(value: StoredPreferences) {
-  if (!canUseStorage()) {
+  const storage = getStorage()
+
+  if (!storage) {
     return
   }
 
   const currentValue = loadStoredPreferences() ?? {}
 
-  window.localStorage.setItem(
-    storedPreferencesKey,
-    JSON.stringify({
-      ...currentValue,
-      ...value,
-    }),
-  )
+  try {
+    storage.setItem(
+      storedPreferencesKey,
+      JSON.stringify({
+        ...currentValue,
+        ...value,
+      }),
+    )
+  } catch {
+    return
+  }
 }
 
 export function shouldReplaceBest(
