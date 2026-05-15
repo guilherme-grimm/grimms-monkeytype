@@ -3,13 +3,9 @@ import { DebugTrigger } from '#/components/dev/debug-trigger'
 import { ToastProvider } from '#/components/ui/toast'
 import { useGlobalButtonSound } from '#/hooks/useGlobalButtonSound'
 import { useApplyImmersionCssVars } from '#/lib/game/immersion-prefs'
+import { buildSeoMeta, SITE_NAME } from '#/lib/seo'
 import appCss from '../styles.css?url'
 
-const SITE_TITLE = 'typer.grimm0.dev'
-const SITE_DESCRIPTION =
-  'A coding typing game built for speed. Ignore tabs and line breaks. Spaces count.'
-const SITE_URL = 'https://typer.grimm0.dev'
-const SITE_OG_IMAGE = `${SITE_URL}/og.png`
 const FIRST_PAINT_STYLE = `html{background:#010201;color:#ddffd8;}body[data-shell-state="booting"]{margin:0;visibility:hidden;opacity:0;}body[data-shell-state="ready"]{visibility:visible;opacity:1;transition:opacity 140ms ease-out;}`
 const FIRST_PAINT_SCRIPT = `(function(){const root=document.documentElement;const defaults={vignetteDarkness:0.46,vignetteTransitionMs:320,metaOpacityDip:0.28,controlsOpacityDip:0.18,caretGlowCeilingPx:20,snippetSaturationLift:0.29,snapBackBrightness:0.82,snapBackDurationMs:260};const reveal=()=>{const tick=()=>{if(!document.body){window.requestAnimationFrame(tick);return;}document.body.setAttribute('data-shell-state','ready');root.setAttribute('data-shell-state','ready');};window.requestAnimationFrame(tick);};root.setAttribute('data-shell-state','booting');try{const raw=window.localStorage&&window.localStorage.getItem('typer.preferences');if(raw){const parsed=JSON.parse(raw);const immersion=parsed&&typeof parsed==='object'?parsed.immersion:null;if(immersion&&typeof immersion==='object'){root.style.setProperty('--debug-vignette-darkness',String(immersion.vignette===false?0:immersion.vignetteDarkness??defaults.vignetteDarkness));root.style.setProperty('--debug-vignette-transition',String(immersion.vignetteTransitionMs??defaults.vignetteTransitionMs)+'ms');root.style.setProperty('--debug-meta-opacity-dip',String(immersion.chromeDimming===false?0:immersion.metaOpacityDip??defaults.metaOpacityDip));root.style.setProperty('--debug-controls-opacity-dip',String(immersion.chromeDimming===false?0:immersion.controlsOpacityDip??defaults.controlsOpacityDip));root.style.setProperty('--debug-caret-glow-ceiling',String(immersion.caretGlowEscalation===false?0:immersion.caretGlowCeilingPx??defaults.caretGlowCeilingPx)+'px');root.style.setProperty('--debug-snippet-saturation-lift',String(immersion.snippetSaturation===false?0:immersion.snippetSaturationLift??defaults.snippetSaturationLift));root.style.setProperty('--debug-snapback-brightness',String(immersion.snapBack===false?1:immersion.snapBackBrightness??defaults.snapBackBrightness));root.style.setProperty('--debug-snapback-duration',String(immersion.snapBackDurationMs??defaults.snapBackDurationMs)+'ms');}}}catch{}if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',reveal,{once:true});}else{reveal();}window.addEventListener('pageshow',reveal,{once:true});window.setTimeout(reveal,900);})();`
 
@@ -18,21 +14,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: SITE_TITLE },
-      { name: 'description', content: SITE_DESCRIPTION },
-
-      { property: 'og:type', content: 'website' },
-      { property: 'og:title', content: SITE_TITLE },
-      { property: 'og:description', content: SITE_DESCRIPTION },
-      { property: 'og:url', content: SITE_URL },
-      { property: 'og:image', content: SITE_OG_IMAGE },
-      { property: 'og:image:width', content: '1200' },
-      { property: 'og:image:height', content: '630' },
-
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: SITE_TITLE },
-      { name: 'twitter:description', content: SITE_DESCRIPTION },
-      { name: 'twitter:image', content: SITE_OG_IMAGE },
+      { name: 'theme-color', content: '#010201' },
+      ...buildSeoMeta({
+        title: `${SITE_NAME} | Code typing game`,
+        description:
+          'Practice typing code snippets in a fast browser game with programming languages, scoring, and leaderboards.',
+        path: '/',
+      }),
     ],
     links: [
       {
@@ -43,6 +31,10 @@ export const Route = createRootRoute({
         rel: 'icon',
         type: 'image/png',
         href: '/favicon.png',
+      },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
       },
     ],
   }),

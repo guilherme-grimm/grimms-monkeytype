@@ -6,6 +6,7 @@ import { AuthChip } from '#/components/auth/auth-chip'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { isRoundShape, type RoundShape, roundShapes } from '#/lib/game/round-shape'
 import { type LanguageId, languages } from '#/lib/game/types'
+import { buildCanonicalLink, buildSeoMeta } from '#/lib/seo'
 import { auth } from '#/server/auth'
 import { getLeaderboardByLanguage, getUserBestRank, type UserRank } from '#/server/leaderboard'
 
@@ -42,6 +43,15 @@ export const Route = createFileRoute('/leaderboard')({
     ])
     return { entries, myRank, roundShape: deps.roundShape }
   },
+  head: () => ({
+    meta: buildSeoMeta({
+      title: 'Code typing leaderboard | typer.grimm0.dev',
+      description:
+        'Compare top code typing scores by programming language, difficulty, and round type on typer.grimm0.dev.',
+      path: '/leaderboard',
+    }),
+    links: [buildCanonicalLink('/leaderboard')],
+  }),
   component: LeaderboardPage,
 })
 

@@ -7,6 +7,7 @@ import { HomeOnboarding } from '#/components/home-onboarding'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
 import { useSession } from '#/lib/auth-client'
+import { buildCanonicalLink, buildHomeStructuredData, buildSeoMeta, SITE_NAME } from '#/lib/seo'
 import {
   DEFAULT_DIFFICULTY,
   type DifficultyPreset,
@@ -57,6 +58,18 @@ export const Route = createFileRoute('/')({
     isSupportedLanguage(search.language) ? { language: search.language } : {},
   loader: async () => ({
     leaderboardByShape: await getLeaderboardPreviewServerFn(),
+  }),
+  head: () => ({
+    meta: [
+      ...buildSeoMeta({
+        title: `${SITE_NAME} | Code typing game`,
+        description:
+          'Practice typing code snippets in a fast browser game with programming languages, scoring, and leaderboards.',
+        path: '/',
+      }),
+      ...buildHomeStructuredData(),
+    ],
+    links: [buildCanonicalLink('/')],
   }),
   component: Home,
 })

@@ -13,8 +13,11 @@ const clientRoot = join(import.meta.dir, 'dist', 'client')
 const publicFilePaths = new Set([
   '/favicon.png',
   '/favicon.ico',
+  '/logo192.png',
+  '/logo512.png',
   '/manifest.json',
   '/robots.txt',
+  '/sitemap.xml',
   '/og.png',
 ])
 

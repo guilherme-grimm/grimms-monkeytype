@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { RankBadge } from '#/components/game/rank-badge'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { rankFor } from '#/lib/game/scoring'
+import { buildCanonicalLink, buildSeoMeta, SITE_URL } from '#/lib/seo'
 import { score as scoreTable, user } from '#/server/auth-schema'
 import { db } from '#/server/db'
 
@@ -21,8 +22,6 @@ type SharedRun = {
   language: string
   userName: string
 }
-
-const SITE_URL = 'https://typer.grimm0.dev'
 
 const getSharedRunServerFn = createServerFn({ method: 'GET' })
   .inputValidator((data: { id: string }) => data)
@@ -63,27 +62,17 @@ export const Route = createFileRoute('/r/$id')({
     const rank = rankFor(run.score)
     const title = `${run.userName} — ${rank} rank on typer.grimm0.dev`
     const description = `${run.score} score • ${run.wpm.toFixed(1)} wpm • ${run.accuracy.toFixed(1)}% accuracy • ${run.snippetsCompleted} snippets in ${run.language}`
-    const url = `${SITE_URL}/r/${run.id}`
     const image = `${SITE_URL}/api/og/${run.id}`
 
     return {
-      meta: [
-        { title },
-        { name: 'description', content: description },
-
-        { property: 'og:type', content: 'website' },
-        { property: 'og:title', content: title },
-        { property: 'og:description', content: description },
-        { property: 'og:url', content: url },
-        { property: 'og:image', content: image },
-        { property: 'og:image:width', content: '1200' },
-        { property: 'og:image:height', content: '630' },
-
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: title },
-        { name: 'twitter:description', content: description },
-        { name: 'twitter:image', content: image },
-      ],
+      meta: buildSeoMeta({
+        title,
+        description,
+        path: `/r/${run.id}`,
+        image,
+        noindex: true,
+      }),
+      links: [buildCanonicalLink(`/r/${run.id}`)],
     }
   },
   component: SharedRunPage,

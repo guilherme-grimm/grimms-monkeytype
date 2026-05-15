@@ -28,11 +28,21 @@ import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
 import { buildShareText } from '#/lib/share/copy'
+import { buildCanonicalLink, buildSeoMeta } from '#/lib/seo'
 import { submitScoreServerFn } from '#/server/scores-client'
 
 export const Route = createFileRoute('/play')({
   validateSearch: (search) => ({
     language: isSupportedLanguage(search.language) ? search.language : 'javascript',
+  }),
+  head: () => ({
+    meta: buildSeoMeta({
+      title: 'Play a code typing game | typer.grimm0.dev',
+      description:
+        'Start a fast code typing round with JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, and PHP snippets.',
+      path: '/play',
+    }),
+    links: [buildCanonicalLink('/play')],
   }),
   component: PlayRoute,
 })
