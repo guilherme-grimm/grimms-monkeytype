@@ -47,6 +47,14 @@ const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(
   return { timed, survival }
 })
 const REPO_URL = 'https://github.com/guilherme-grimm/grimms-monkeytype'
+const FRIEND_PROJECT = {
+  label: 'Also try',
+  title: 'Terminal Hack',
+  callout: 'Try it and see how you fare against the others',
+  bodyCopy: '1v1 typing battle of terminal commands, where the best hacker shall win',
+  ctaLabel: 'play terminal.hack',
+  url: 'https://terminalhack.shardweb.app/',
+} as const
 
 export const Route = createFileRoute('/')({
   // Only emit the `language` key when it's a real value — returning
@@ -301,6 +309,8 @@ function Home() {
               </a>
             </div>
           </div>
+
+          <FriendProjectCard />
         </div>
 
         <div className="panel scan-lines overflow-hidden">
@@ -415,6 +425,38 @@ function Home() {
         </div>
       </section>
     </main>
+  )
+}
+
+function FriendProjectCard() {
+  return (
+    <div className="panel-soft max-w-2xl border-l-2 border-[var(--color-border-soft)] px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="eyebrow text-[var(--color-muted)]">{FRIEND_PROJECT.label}</p>
+        <span className="pixel-border bg-[rgba(255,255,255,0.03)] px-2 py-1 text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          terminal arena
+        </span>
+      </div>
+
+      <h2 className="mt-3 text-2xl font-semibold terminal-text">{FRIEND_PROJECT.title}</h2>
+      <p className="mt-4 max-w-md text-lg font-semibold uppercase tracking-[0.12em] text-[var(--color-accent)] sm:text-xl">
+        {FRIEND_PROJECT.callout}
+      </p>
+      <p className="mt-4 max-w-lg text-sm leading-6 text-[var(--color-muted)] sm:text-base">
+        {FRIEND_PROJECT.bodyCopy}
+      </p>
+
+      <div className="mt-5 border-t border-[var(--color-border-soft)] pt-4">
+        <a
+          className="button-secondary no-underline opacity-90"
+          href={FRIEND_PROJECT.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {FRIEND_PROJECT.ctaLabel}
+        </a>
+      </div>
+    </div>
   )
 }
 
