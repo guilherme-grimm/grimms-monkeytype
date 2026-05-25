@@ -6,7 +6,7 @@ import { AuthChip } from '#/components/auth/auth-chip'
 import { HomeOnboarding } from '#/components/home-onboarding'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
-import { useKonamiCode } from '#/hooks/useKonamiCode'
+import { useKonamiCode, useReverseKonamiCode } from '#/hooks/useKonamiCode'
 import { useSession } from '#/lib/auth-client'
 import {
   DEFAULT_DIFFICULTY,
@@ -101,7 +101,8 @@ function Home() {
   // storage confirms the user has never dismissed the welcome modal.
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [binaryUnlocked, setBinaryUnlocked] = useState(false)
-  const [showBinaryToast, setShowBinaryToast] = useState(false)
+  const [asmUnlocked, setAsmUnlocked] = useState(false)
+  const [unlockToast, setUnlockToast] = useState<string | null>(null)
   const [glitching, setGlitching] = useState(false)
   const { data: session, isPending: sessionPending } = useSession()
 
@@ -113,15 +114,27 @@ function Home() {
       return true
     })
     setSelectedLanguage('binary')
-    setShowBinaryToast(true)
+    setUnlockToast('> konami.unlock OK · binary snippets available')
+    setGlitching(true)
+  })
+
+  useReverseKonamiCode(() => {
+    setAsmUnlocked((prev) => {
+      if (!prev) {
+        saveStoredPreferences({ asmUnlocked: true })
+      }
+      return true
+    })
+    setSelectedLanguage('asm')
+    setUnlockToast('> reverse.konami OK · asm snippets loaded')
     setGlitching(true)
   })
 
   useEffect(() => {
-    if (!showBinaryToast) return
-    const handle = window.setTimeout(() => setShowBinaryToast(false), 4000)
+    if (!unlockToast) return
+    const handle = window.setTimeout(() => setUnlockToast(null), 4000)
     return () => window.clearTimeout(handle)
-  }, [showBinaryToast])
+  }, [unlockToast])
 
   useEffect(() => {
     if (!glitching) return
@@ -129,9 +142,11 @@ function Home() {
     return () => window.clearTimeout(handle)
   }, [glitching])
 
-  const visibleLanguages = binaryUnlocked
-    ? languages
-    : languages.filter((language) => language !== 'binary')
+  const visibleLanguages = languages.filter((language) => {
+    if (language === 'binary') return binaryUnlocked
+    if (language === 'asm') return asmUnlocked
+    return true
+  })
 
   const selectedLeaderboard = leaderboardByShape[selectedRoundShape][selectedLanguage] ?? []
 
@@ -151,6 +166,7 @@ function Home() {
     setHasSeenSettingsHint(preferences?.settingsHintSeen === true)
     setOnboardingOpen(preferences?.hasSeenHomeOnboarding !== true)
     setBinaryUnlocked(preferences?.binaryUnlocked === true)
+    setAsmUnlocked(preferences?.asmUnlocked === true)
     setLocalBestScores(loadLocalBestScores())
   }, [search.language])
 
@@ -185,13 +201,13 @@ function Home() {
       }`}
     >
       {glitching && <div className="konami-glitch-overlay" aria-hidden="true" />}
-      {showBinaryToast && (
+      {unlockToast && (
         <div
           role="status"
           aria-live="polite"
           className="pointer-events-none fixed left-1/2 top-6 z-50 -translate-x-1/2 pixel-border bg-[var(--color-panel)] px-4 py-3 text-sm terminal-text shadow-lg"
         >
-          &gt; konami.unlock OK · binary snippets available
+          {unlockToast}
         </div>
       )}
       <HomeOnboarding

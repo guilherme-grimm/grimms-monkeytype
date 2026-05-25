@@ -1,0 +1,62 @@
+[
+  {
+    "id": "asm-1",
+    "language": "asm",
+    "source": "section .text\nglobal _start\n\n_start:\n    mov rax, 1\n    mov rdi, 1\n    mov rsi, msg\n    mov rdx, 13\n    syscall\n    mov rax, 60\n    xor rdi, rdi\n    syscall\n\nsection .data\nmsg: db \"Hello, world\", 10"
+  },
+  {
+    "id": "asm-2",
+    "language": "asm",
+    "source": "; sum the first rdi integers, return in rax\nsum_n:\n    xor rax, rax\n    mov rcx, 1\n.loop:\n    cmp rcx, rdi\n    jg .done\n    add rax, rcx\n    inc rcx\n    jmp .loop\n.done:\n    ret"
+  },
+  {
+    "id": "asm-3",
+    "language": "asm",
+    "source": "; strlen(rdi) -> rax\nstrlen:\n    xor rax, rax\n.next:\n    cmp byte [rdi + rax], 0\n    je .done\n    inc rax\n    jmp .next\n.done:\n    ret"
+  },
+  {
+    "id": "asm-4",
+    "language": "asm",
+    "source": "; memcpy(rdi=dst, rsi=src, rdx=len)\nmemcpy:\n    test rdx, rdx\n    jz .done\n    mov rcx, rdx\n    cld\n    rep movsb\n.done:\n    ret"
+  },
+  {
+    "id": "asm-5",
+    "language": "asm",
+    "source": "; factorial(rdi) -> rax, recursive\nfact:\n    cmp rdi, 1\n    jle .base\n    push rdi\n    dec rdi\n    call fact\n    pop rdi\n    imul rax, rdi\n    ret\n.base:\n    mov rax, 1\n    ret"
+  },
+  {
+    "id": "asm-6",
+    "language": "asm",
+    "source": "; fibonacci(rdi) -> rax, iterative\nfib:\n    xor rax, rax\n    mov rcx, 1\n    test rdi, rdi\n    jz .done\n.loop:\n    add rax, rcx\n    xchg rax, rcx\n    dec rdi\n    jnz .loop\n.done:\n    ret"
+  },
+  {
+    "id": "asm-7",
+    "language": "asm",
+    "source": "; max(rdi, rsi) -> rax, branchless\nmax:\n    mov rax, rdi\n    cmp rax, rsi\n    cmovl rax, rsi\n    ret"
+  },
+  {
+    "id": "asm-8",
+    "language": "asm",
+    "source": "; popcount(rdi) -> rax\npopcount:\n    xor rax, rax\n.loop:\n    test rdi, rdi\n    jz .done\n    mov rcx, rdi\n    dec rcx\n    and rdi, rcx\n    inc rax\n    jmp .loop\n.done:\n    ret"
+  },
+  {
+    "id": "asm-9",
+    "language": "asm",
+    "source": "; swap two i64 pointed to by rdi and rsi\nswap_i64:\n    mov rax, [rdi]\n    mov rcx, [rsi]\n    mov [rdi], rcx\n    mov [rsi], rax\n    ret"
+  },
+  {
+    "id": "asm-10",
+    "language": "asm",
+    "source": "; reverse byte array in place: rdi=ptr, rsi=len\nreverse:\n    test rsi, rsi\n    jz .done\n    lea rcx, [rdi + rsi - 1]\n.loop:\n    cmp rdi, rcx\n    jge .done\n    mov al, [rdi]\n    mov dl, [rcx]\n    mov [rdi], dl\n    mov [rcx], al\n    inc rdi\n    dec rcx\n    jmp .loop\n.done:\n    ret"
+  },
+  {
+    "id": "asm-11",
+    "language": "asm",
+    "source": "; gcd(rdi, rsi) -> rax, Euclidean\ngcd:\n    mov rax, rdi\n.loop:\n    test rsi, rsi\n    jz .done\n    xor rdx, rdx\n    div rsi\n    mov rax, rsi\n    mov rsi, rdx\n    jmp .loop\n.done:\n    ret"
+  },
+  {
+    "id": "asm-12",
+    "language": "asm",
+    "source": "; clamp(rdi=val, rsi=lo, rdx=hi) -> rax\nclamp:\n    mov rax, rdi\n    cmp rax, rsi\n    cmovl rax, rsi\n    cmp rax, rdx\n    cmovg rax, rdx\n    ret"
+  }
+]

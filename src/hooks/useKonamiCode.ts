@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-const KONAMI_SEQUENCE = [
+export const KONAMI_SEQUENCE = [
   'ArrowUp',
   'ArrowUp',
   'ArrowDown',
@@ -13,10 +13,12 @@ const KONAMI_SEQUENCE = [
   'a',
 ] as const
 
-export function useKonamiCode(onUnlock: () => void) {
+export const REVERSE_KONAMI_SEQUENCE = [...KONAMI_SEQUENCE].reverse() as ReadonlyArray<string>
+
+export function useKeySequence(sequence: ReadonlyArray<string>, onMatch: () => void) {
   const indexRef = useRef(0)
-  const callbackRef = useRef(onUnlock)
-  callbackRef.current = onUnlock
+  const callbackRef = useRef(onMatch)
+  callbackRef.current = onMatch
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -28,21 +30,29 @@ export function useKonamiCode(onUnlock: () => void) {
         return
       }
 
-      const expected = KONAMI_SEQUENCE[indexRef.current]
+      const expected = sequence[indexRef.current]
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
       if (key === expected) {
         indexRef.current += 1
-        if (indexRef.current === KONAMI_SEQUENCE.length) {
+        if (indexRef.current === sequence.length) {
           indexRef.current = 0
           callbackRef.current()
         }
       } else {
-        indexRef.current = key === KONAMI_SEQUENCE[0] ? 1 : 0
+        indexRef.current = key === sequence[0] ? 1 : 0
       }
     }
 
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [])
+  }, [sequence])
+}
+
+export function useKonamiCode(onUnlock: () => void) {
+  useKeySequence(KONAMI_SEQUENCE, onUnlock)
+}
+
+export function useReverseKonamiCode(onUnlock: () => void) {
+  useKeySequence(REVERSE_KONAMI_SEQUENCE, onUnlock)
 }

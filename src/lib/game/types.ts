@@ -12,6 +12,7 @@ export const languages = [
   'rust',
   'holyc',
   'binary',
+  'asm',
 ] as const
 
 export type LanguageId = (typeof languages)[number]
@@ -30,6 +31,7 @@ export const languageLabels: Record<LanguageId, string> = {
   rust: 'Rust',
   holyc: 'HolyC',
   binary: 'Binary',
+  asm: 'ASM',
 }
 
 export function getLanguageLabel(language: string): string {
@@ -95,4 +97,5 @@ export type StoredPreferences = {
   hasSeenHomeOnboarding?: boolean
   buttonSoundEnabled?: boolean
   binaryUnlocked?: boolean
+  asmUnlocked?: boolean
 }
