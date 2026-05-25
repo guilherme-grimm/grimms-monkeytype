@@ -9,6 +9,7 @@ export const languages = [
   'php',
   'c',
   'cpp',
+  'holyc',
 ] as const
 
 export type LanguageId = (typeof languages)[number]
@@ -24,6 +25,7 @@ export const languageLabels: Record<LanguageId, string> = {
   php: 'PHP',
   c: 'C',
   cpp: 'C++',
+  holyc: 'HolyC',
 }
 
 export function getLanguageLabel(language: string): string {

@@ -40,7 +40,7 @@ export const Route = createFileRoute('/play')({
     meta: buildSeoMeta({
       title: 'Play a code typing game | typer.grimm0.dev',
       description:
-        'Start a fast code typing round with JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, PHP, C, and C++ snippets.',
+        'Start a fast code typing round with JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, PHP, C, C++, and HolyC snippets.',
       path: '/play',
     }),
     links: [buildCanonicalLink('/play')],
