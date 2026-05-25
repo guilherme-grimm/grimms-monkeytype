@@ -7,9 +7,28 @@ export const languages = [
   'kotlin',
   'ruby',
   'php',
+  'c',
+  'cpp',
 ] as const
 
 export type LanguageId = (typeof languages)[number]
+
+export const languageLabels: Record<LanguageId, string> = {
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  python: 'Python',
+  go: 'Go',
+  java: 'Java',
+  kotlin: 'Kotlin',
+  ruby: 'Ruby',
+  php: 'PHP',
+  c: 'C',
+  cpp: 'C++',
+}
+
+export function getLanguageLabel(language: string): string {
+  return language in languageLabels ? languageLabels[language as LanguageId] : language
+}
 
 export type DisplayToken = {
   value: string

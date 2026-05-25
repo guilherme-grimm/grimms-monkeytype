@@ -26,6 +26,7 @@ import {
 } from '#/lib/game/score-submission'
 import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
+import { languageLabels } from '#/lib/game/types'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
 import { buildShareText } from '#/lib/share/copy'
 import { buildCanonicalLink, buildSeoMeta } from '#/lib/seo'
@@ -39,7 +40,7 @@ export const Route = createFileRoute('/play')({
     meta: buildSeoMeta({
       title: 'Play a code typing game | typer.grimm0.dev',
       description:
-        'Start a fast code typing round with JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, and PHP snippets.',
+        'Start a fast code typing round with JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, PHP, C, and C++ snippets.',
       path: '/play',
     }),
     links: [buildCanonicalLink('/play')],
@@ -242,7 +243,7 @@ function PlayRoute() {
             className="pixel-border bg-[rgba(47,125,50,0.08)] px-3 py-1 text-[var(--color-muted)]"
             title="language · difficulty · mode"
           >
-            <span className="text-[var(--color-primary-glow)]">{language}</span>
+            <span className="text-[var(--color-primary-glow)]">{languageLabels[language]}</span>
             <span className="px-2 text-[var(--color-muted)]/60">·</span>
             <span>{difficulty}</span>
             {roundShape === 'survival' && (
@@ -507,7 +508,8 @@ function ResultPanel(props: {
             ? 'Sign in to save scores to the global leaderboard.'
             : null
 
-  const fallbackShareText = `I just scored ${props.metrics.score} points!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${props.language}`
+  const languageLabel = languageLabels[props.language]
+  const fallbackShareText = `I just scored ${props.metrics.score} points!\n${props.metrics.wpm.toFixed(1)} WPM • ${props.metrics.accuracy.toFixed(1)}% accuracy • ${props.metrics.snippetsCompleted} snippets in ${languageLabel}`
   const siteUrl = 'https://typer.grimm0.dev'
 
   // Returns the tweet text to use given a resolved scoreId. When scoreId is

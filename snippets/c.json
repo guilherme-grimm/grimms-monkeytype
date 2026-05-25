@@ -1,0 +1,52 @@
+[
+  {
+    "id": "c-1",
+    "language": "c",
+    "source": "size_t collect_active_users(const User *users, size_t length, time_t cutoff, char **names) {\n    size_t count = 0;\n\n    for (size_t index = 0; index < length; index++) {\n        if (!users[index].is_online || users[index].last_seen_at <= cutoff) {\n            continue;\n        }\n\n        names[count++] = users[index].name;\n    }\n\n    return count;\n}"
+  },
+  {
+    "id": "c-2",
+    "language": "c",
+    "source": "int clamp_score(int score, int minimum, int maximum) {\n    if (score < minimum) {\n        return minimum;\n    }\n\n    if (score > maximum) {\n        return maximum;\n    }\n\n    return score;\n}"
+  },
+  {
+    "id": "c-3",
+    "language": "c",
+    "source": "bool build_summary(const Project *project, char *buffer, size_t capacity) {\n    if (project->name[0] == '\\0') {\n        return false;\n    }\n\n    int written = snprintf(buffer, capacity, \"%s:%s\", project->name, project->branch);\n    return written >= 0 && (size_t)written < capacity;\n}"
+  },
+  {
+    "id": "c-4",
+    "language": "c",
+    "source": "int compare_scores_desc(const void *left, const void *right) {\n    const ScoreEntry *a = left;\n    const ScoreEntry *b = right;\n\n    return b->score - a->score;\n}\n\nvoid top_scores(ScoreEntry *entries, size_t length) {\n    qsort(entries, length, sizeof(ScoreEntry), compare_scores_desc);\n}"
+  },
+  {
+    "id": "c-5",
+    "language": "c",
+    "source": "size_t group_posts_by_tag(const Post *posts, size_t length, TagGroup *groups) {\n    size_t group_count = 0;\n\n    for (size_t index = 0; index < length; index++) {\n        for (size_t tag = 0; tag < posts[index].tag_count; tag++) {\n            group_count = append_tag(groups, group_count, posts[index].tags[tag], posts[index].slug);\n        }\n    }\n\n    return group_count;\n}"
+  },
+  {
+    "id": "c-6",
+    "language": "c",
+    "source": "ScoreEntry *pick_best(ScoreEntry *entries, size_t length) {\n    if (length == 0) {\n        return NULL;\n    }\n\n    ScoreEntry *best = &entries[0];\n    for (size_t index = 1; index < length; index++) {\n        if (entries[index].score > best->score) {\n            best = &entries[index];\n        }\n    }\n\n    return best;\n}"
+  },
+  {
+    "id": "c-7",
+    "language": "c",
+    "source": "RouteLanguage get_route_language(const char *value) {\n    if (strcmp(value, \"c\") == 0) {\n        return ROUTE_LANGUAGE_C;\n    }\n\n    if (strcmp(value, \"cpp\") == 0) {\n        return ROUTE_LANGUAGE_CPP;\n    }\n\n    return ROUTE_LANGUAGE_JAVASCRIPT;\n}"
+  },
+  {
+    "id": "c-8",
+    "language": "c",
+    "source": "size_t normalize_values(char **values, size_t length) {\n    size_t write_index = 0;\n\n    for (size_t index = 0; index < length; index++) {\n        trim_in_place(values[index]);\n        if (values[index][0] != '\\0') {\n            values[write_index++] = values[index];\n        }\n    }\n\n    return write_index;\n}"
+  },
+  {
+    "id": "c-9",
+    "language": "c",
+    "source": "const char *primary_email(const User *user) {\n    for (size_t index = 0; index < user->contact_count; index++) {\n        ContactMethod method = user->contacts[index];\n\n        if (method.kind == CONTACT_EMAIL && method.is_verified) {\n            return method.value;\n        }\n    }\n\n    return NULL;\n}"
+  },
+  {
+    "id": "c-10",
+    "language": "c",
+    "source": "bool read_first_line(FILE *file, char *buffer, size_t capacity) {\n    if (fgets(buffer, capacity, file) == NULL) {\n        return false;\n    }\n\n    buffer[strcspn(buffer, \"\\n\")] = '\\0';\n    return buffer[0] != '\\0';\n}"
+  }
+]

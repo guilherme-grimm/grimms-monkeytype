@@ -5,7 +5,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import { AuthChip } from '#/components/auth/auth-chip'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { isRoundShape, type RoundShape, roundShapes } from '#/lib/game/round-shape'
-import { type LanguageId, languages } from '#/lib/game/types'
+import { type LanguageId, languageLabels, languages } from '#/lib/game/types'
 import { buildCanonicalLink, buildSeoMeta } from '#/lib/seo'
 import { auth } from '#/server/auth'
 import { getLeaderboardByLanguage, getUserBestRank, type UserRank } from '#/server/leaderboard'
@@ -130,7 +130,7 @@ function LeaderboardPage() {
                   to="/leaderboard"
                   search={{ language: value, roundShape }}
                 >
-                  {value}
+                  {languageLabels[value]}
                 </Link>
               ))}
             </div>
@@ -141,7 +141,7 @@ function LeaderboardPage() {
               <div>
                 <p className="eyebrow text-[var(--color-muted)]">{roundShape} board</p>
                 <h2 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
-                  {language} top 25
+                  {languageLabels[language]} top 25
                 </h2>
               </div>
               <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-primary-glow)]">
@@ -161,7 +161,7 @@ function LeaderboardPage() {
                 ))
               ) : (
                 <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4 text-sm text-[var(--color-muted)]">
-                  No leaderboard runs found yet for {language}.
+                  No leaderboard runs found yet for {languageLabels[language]}.
                 </article>
               )}
             </div>

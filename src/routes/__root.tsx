@@ -61,7 +61,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           data-domains="typer.grimm0.dev"
         />
       </head>
-      <body suppressHydrationWarning className="bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
+      <body
+        suppressHydrationWarning
+        className="bg-[var(--color-bg)] text-[var(--color-text)] antialiased"
+      >
         <ToastProvider>{children}</ToastProvider>
         {import.meta.env.DEV ? <DebugTrigger /> : null}
         <Scripts />

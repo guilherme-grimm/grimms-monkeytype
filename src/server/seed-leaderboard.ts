@@ -112,6 +112,30 @@ const sampleScores = [
     totalTypedChars: 238,
     snippetsCompleted: 4,
   },
+  {
+    userId: 'seed-user-4',
+    language: 'c',
+    score: 187,
+    wpm: 83.5,
+    cpm: 418,
+    accuracy: 97.7,
+    correctChars: 209,
+    incorrectChars: 5,
+    totalTypedChars: 214,
+    snippetsCompleted: 3,
+  },
+  {
+    userId: 'seed-user-5',
+    language: 'cpp',
+    score: 193,
+    wpm: 86.2,
+    cpm: 431,
+    accuracy: 98.0,
+    correctChars: 216,
+    incorrectChars: 4,
+    totalTypedChars: 220,
+    snippetsCompleted: 3,
+  },
 ]
 
 async function seed() {

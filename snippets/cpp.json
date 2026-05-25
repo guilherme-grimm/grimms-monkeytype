@@ -1,0 +1,52 @@
+[
+  {
+    "id": "cpp-1",
+    "language": "cpp",
+    "source": "std::vector<std::string> collectActiveUsers(const std::vector<User>& users, Instant cutoff) {\n    std::vector<std::string> activeUsers;\n\n    for (const auto& user : users) {\n        if (!user.isOnline() || user.lastSeenAt() <= cutoff) {\n            continue;\n        }\n\n        activeUsers.push_back(user.name());\n    }\n\n    return activeUsers;\n}"
+  },
+  {
+    "id": "cpp-2",
+    "language": "cpp",
+    "source": "std::unordered_map<std::string, std::vector<std::string>> groupPostsByTag(const std::vector<Post>& posts) {\n    std::unordered_map<std::string, std::vector<std::string>> grouped;\n\n    for (const auto& post : posts) {\n        for (const auto& tag : post.tags()) {\n            grouped[tag].push_back(post.slug());\n        }\n    }\n\n    return grouped;\n}"
+  },
+  {
+    "id": "cpp-3",
+    "language": "cpp",
+    "source": "std::string buildSummary(const Project& project) {\n    if (project.name().empty()) {\n        throw std::invalid_argument(\"missing project name\");\n    }\n\n    std::string summary = project.name() + \":\" + project.branch();\n    std::ranges::transform(summary, summary.begin(), [](unsigned char ch) {\n        return std::tolower(ch);\n    });\n\n    return summary;\n}"
+  },
+  {
+    "id": "cpp-4",
+    "language": "cpp",
+    "source": "std::vector<ScoreEntry> topScores(std::vector<ScoreEntry> entries) {\n    std::erase_if(entries, [](const ScoreEntry& entry) {\n        return entry.score() <= 0;\n    });\n\n    std::ranges::sort(entries, std::greater{}, &ScoreEntry::score);\n\n    if (entries.size() > 5) {\n        entries.resize(5);\n    }\n\n    return entries;\n}"
+  },
+  {
+    "id": "cpp-5",
+    "language": "cpp",
+    "source": "int clampScore(int score, int minimum, int maximum) {\n    if (score < minimum) {\n        return minimum;\n    }\n\n    if (score > maximum) {\n        return maximum;\n    }\n\n    return score;\n}"
+  },
+  {
+    "id": "cpp-6",
+    "language": "cpp",
+    "source": "std::optional<ScoreEntry> pickBest(std::vector<ScoreEntry> entries) {\n    if (entries.empty()) {\n        return std::nullopt;\n    }\n\n    std::ranges::sort(entries, std::greater{}, &ScoreEntry::score);\n    return entries.front();\n}"
+  },
+  {
+    "id": "cpp-7",
+    "language": "cpp",
+    "source": "RouteLanguage getRouteLanguage(const std::map<std::string, std::string>& search) {\n    auto language = search.contains(\"language\") ? search.at(\"language\") : \"javascript\";\n\n    if (language == \"cpp\") {\n        return RouteLanguage::Cpp;\n    }\n\n    if (language == \"python\") {\n        return RouteLanguage::Python;\n    }\n\n    return RouteLanguage::JavaScript;\n}"
+  },
+  {
+    "id": "cpp-8",
+    "language": "cpp",
+    "source": "std::vector<std::string> normalizeValues(std::vector<std::string> values) {\n    std::erase_if(values, [](const std::string& value) {\n        return value.empty();\n    });\n\n    for (auto& value : values) {\n        trim(value);\n    }\n\n    return values;\n}"
+  },
+  {
+    "id": "cpp-9",
+    "language": "cpp",
+    "source": "std::optional<std::string> primaryEmail(const User& user) {\n    for (const auto& method : user.contactMethods()) {\n        if (method.kind() == ContactKind::Email && method.isVerified()) {\n            return method.value();\n        }\n    }\n\n    return std::nullopt;\n}"
+  },
+  {
+    "id": "cpp-10",
+    "language": "cpp",
+    "source": "std::string readFirstLine(const std::filesystem::path& path) {\n    std::ifstream file(path);\n    std::string line;\n\n    if (!std::getline(file, line)) {\n        throw std::runtime_error(\"empty file\");\n    }\n\n    trim(line);\n    return line;\n}"
+  }
+]

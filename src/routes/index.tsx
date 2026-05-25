@@ -36,7 +36,7 @@ import {
   saveStoredPreferences,
 } from '#/lib/game/storage'
 import type { LanguageId } from '#/lib/game/types'
-import { languages } from '#/lib/game/types'
+import { languageLabels, languages } from '#/lib/game/types'
 import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -214,7 +214,7 @@ function Home() {
                         className={active ? 'button-primary' : 'button-secondary'}
                         onClick={() => setSelectedLanguage(language)}
                       >
-                        {language}
+                        {languageLabels[language]}
                       </button>
                     )
                   })}
@@ -343,7 +343,9 @@ function Home() {
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="eyebrow text-[var(--color-muted)]">{language}</p>
+                        <p className="eyebrow text-[var(--color-muted)]">
+                          {languageLabels[language]}
+                        </p>
                         <p className="mt-3 text-3xl font-semibold terminal-text">
                           {bestScore?.score ?? '--'}
                         </p>
@@ -368,7 +370,7 @@ function Home() {
                 <div>
                   <p className="eyebrow text-[var(--color-accent-glow)]">leaderboard preview</p>
                   <h3 className="mt-2 text-xl font-semibold text-[var(--color-text-strong)]">
-                    {selectedLanguage} · {selectedRoundShape} top runs
+                    {languageLabels[selectedLanguage]} · {selectedRoundShape} top runs
                   </h3>
                 </div>
                 <span className="pixel-border bg-[rgba(47,125,50,0.12)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-primary-glow)]">
@@ -491,7 +493,7 @@ function ActiveModsSummary({ mods, onEdit }: { mods: ModSet; onEdit: () => void 
 function EmptyLeaderboardState(props: { language: LanguageId; roundShape: RoundShape }) {
   return (
     <article className="pixel-border bg-[rgba(255,255,255,0.03)] px-4 py-4 text-sm text-[var(--color-muted)]">
-      No leaderboard runs seeded yet for {props.language} ({props.roundShape}).
+      No leaderboard runs seeded yet for {languageLabels[props.language]} ({props.roundShape}).
     </article>
   )
 }

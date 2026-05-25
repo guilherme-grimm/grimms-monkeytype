@@ -4,7 +4,7 @@ A Monkeytype-style coding typing game built with TanStack Start, React, Bun, and
 
 ## Current Product Shape
 - 30-second typing runs
-- Multiline code snippets in 8 languages: JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, PHP
+- Multiline code snippets in 10 languages: JavaScript, TypeScript, Python, Go, Java, Kotlin, Ruby, PHP, C, C++
 - Difficulty presets — Easy / Normal / Hard — gentle 0.85 / 1.00 / 1.25 score multiplier
 - Streak-driven immersion escalation (vignette, caret glow, audio gain ramp, error thunk) — fully tunable per-user in settings
 - Server-validated leaderboard per language with self-row highlight + "your standing" footer

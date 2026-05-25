@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm'
 import satori from 'satori'
 
 import { rankFor } from '#/lib/game/scoring'
+import { getLanguageLabel } from '#/lib/game/types'
 
 import { score as scoreTable, user } from '../auth-schema'
 import { db } from '../db'
@@ -51,7 +52,7 @@ export async function generateOgPng(scoreId: string): Promise<Buffer | null> {
       wpm: row.wpm,
       accuracy: row.accuracy,
       snippetsCompleted: row.snippetsCompleted,
-      language: row.language,
+      language: getLanguageLabel(row.language),
       mode: row.mode,
       userName: row.userName,
     }),

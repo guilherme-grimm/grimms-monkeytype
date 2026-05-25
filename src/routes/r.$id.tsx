@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { RankBadge } from '#/components/game/rank-badge'
 import { isSupportedLanguage } from '#/lib/game/normalization'
 import { rankFor } from '#/lib/game/scoring'
+import { getLanguageLabel } from '#/lib/game/types'
 import { buildCanonicalLink, buildSeoMeta, SITE_URL } from '#/lib/seo'
 import { score as scoreTable, user } from '#/server/auth-schema'
 import { db } from '#/server/db'
@@ -61,7 +62,7 @@ export const Route = createFileRoute('/r/$id')({
 
     const rank = rankFor(run.score)
     const title = `${run.userName} — ${rank} rank on typer.grimm0.dev`
-    const description = `${run.score} score • ${run.wpm.toFixed(1)} wpm • ${run.accuracy.toFixed(1)}% accuracy • ${run.snippetsCompleted} snippets in ${run.language}`
+    const description = `${run.score} score • ${run.wpm.toFixed(1)} wpm • ${run.accuracy.toFixed(1)}% accuracy • ${run.snippetsCompleted} snippets in ${getLanguageLabel(run.language)}`
     const image = `${SITE_URL}/api/og/${run.id}`
 
     return {
@@ -101,7 +102,7 @@ function SharedRunPage() {
               <p className="eyebrow text-[var(--color-accent-glow)]">shared run</p>
               <h1 className="mt-2 text-3xl font-semibold terminal-text">{run.userName}</h1>
               <p className="mt-1 text-sm text-[var(--color-muted)]">
-                {run.language} • {run.mode}
+                {getLanguageLabel(run.language)} • {run.mode}
               </p>
             </div>
             <RankBadge rank={rank} />
