@@ -26,10 +26,10 @@ import {
 } from '#/lib/game/score-submission'
 import { countMatchingPrefix, rankFor } from '#/lib/game/scoring'
 import { loadStoredPreferences, saveStoredPreferences, shouldReplaceBest } from '#/lib/game/storage'
-import { languageLabels } from '#/lib/game/types'
 import type { LanguageId, LocalBestScore, RoundMetrics } from '#/lib/game/types'
-import { buildShareText } from '#/lib/share/copy'
+import { languageLabels } from '#/lib/game/types'
 import { buildCanonicalLink, buildSeoMeta } from '#/lib/seo'
+import { buildShareText } from '#/lib/share/copy'
 import { submitScoreServerFn } from '#/server/scores-client'
 
 export const Route = createFileRoute('/play')({

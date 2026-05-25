@@ -1048,6 +1048,142 @@ button {
   }
 }
 
+/* === Konami unlock glitch ====================================================
+   Full-viewport CRT/RGB-shift burst that fires when the Konami code unlocks
+   the binary language. Two stacked layers: a chromatic-aberration text echo
+   on the body's children (via filter on a sibling) is too invasive, so we
+   instead overlay a flickering scanline+noise field plus a brief shake on
+   the main shell. */
+.konami-glitch {
+  animation: konami-glitch-shake 700ms steps(8, end) 1;
+}
+
+.konami-glitch-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(to bottom, rgba(168, 255, 140, 0.18) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, rgba(132, 226, 114, 0.22) 0%, rgba(0, 0, 0, 0) 65%);
+  animation: konami-glitch-flicker 700ms steps(6, end) 1;
+}
+
+.konami-glitch-overlay::before,
+.konami-glitch-overlay::after {
+  content: "10110100 01001011 00111010 11001001 01010001 10100110";
+  position: absolute;
+  inset: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: clamp(0.7rem, 1.2vw, 1rem);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  word-spacing: 0.6em;
+  white-space: pre-wrap;
+  overflow: hidden;
+  padding: 1rem;
+  color: rgba(168, 255, 140, 0.55);
+  text-shadow: 0 0 6px rgba(132, 226, 114, 0.7);
+  animation: konami-glitch-rain 700ms steps(10, end) 1;
+}
+
+.konami-glitch-overlay::after {
+  color: rgba(255, 80, 120, 0.45);
+  transform: translate(2px, -1px);
+  mix-blend-mode: difference;
+  animation-direction: reverse;
+}
+
+@keyframes konami-glitch-shake {
+  0% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  15% {
+    transform: translate(-3px, 1px);
+    filter: hue-rotate(20deg) saturate(1.4);
+  }
+  30% {
+    transform: translate(2px, -2px);
+    filter: hue-rotate(-25deg) saturate(1.6) brightness(1.15);
+  }
+  45% {
+    transform: translate(-2px, 2px);
+    filter: hue-rotate(10deg);
+  }
+  60% {
+    transform: translate(3px, 0);
+    filter: hue-rotate(-15deg) brightness(1.05);
+  }
+  80% {
+    transform: translate(-1px, 1px);
+    filter: none;
+  }
+  100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+}
+
+@keyframes konami-glitch-flicker {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.15;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes konami-glitch-rain {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    transform: translate(0, 0);
+  }
+  30% {
+    clip-path: inset(0 0 30% 0);
+    transform: translate(-4px, 2px);
+  }
+  60% {
+    clip-path: inset(20% 0 10% 0);
+    transform: translate(3px, -3px);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translate(0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .konami-glitch,
+  .konami-glitch-overlay,
+  .konami-glitch-overlay::before,
+  .konami-glitch-overlay::after {
+    animation: none;
+  }
+  .konami-glitch-overlay {
+    opacity: 0;
+  }
+}
+
 /* === DEV-only debug panel ====================================================
    Bottom-right floating pill + slider styling. Tree-shaken from prod builds
    along with the components that use these classes. */

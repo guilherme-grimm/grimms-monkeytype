@@ -6,8 +6,8 @@ import { AuthChip } from '#/components/auth/auth-chip'
 import { HomeOnboarding } from '#/components/home-onboarding'
 import { SettingsButton } from '#/components/settings-button'
 import { SettingsDrawer } from '#/components/settings-drawer'
+import { useKonamiCode } from '#/hooks/useKonamiCode'
 import { useSession } from '#/lib/auth-client'
-import { buildCanonicalLink, buildHomeStructuredData, buildSeoMeta, SITE_NAME } from '#/lib/seo'
 import {
   DEFAULT_DIFFICULTY,
   type DifficultyPreset,
@@ -30,13 +30,14 @@ import {
   roundShapes,
 } from '#/lib/game/round-shape'
 import {
-  loadLocalBestScores,
   type LocalBestScoreMap,
+  loadLocalBestScores,
   loadStoredPreferences,
   saveStoredPreferences,
 } from '#/lib/game/storage'
 import type { LanguageId } from '#/lib/game/types'
 import { languageLabels, languages } from '#/lib/game/types'
+import { buildCanonicalLink, buildHomeStructuredData, buildSeoMeta, SITE_NAME } from '#/lib/seo'
 import { getLeaderboardPreview } from '#/server/leaderboard'
 
 const getLeaderboardPreviewServerFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -99,7 +100,38 @@ function Home() {
   // Default false for SSR parity; the storage-read effect flips it on only when
   // storage confirms the user has never dismissed the welcome modal.
   const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [binaryUnlocked, setBinaryUnlocked] = useState(false)
+  const [showBinaryToast, setShowBinaryToast] = useState(false)
+  const [glitching, setGlitching] = useState(false)
   const { data: session, isPending: sessionPending } = useSession()
+
+  useKonamiCode(() => {
+    setBinaryUnlocked((prev) => {
+      if (!prev) {
+        saveStoredPreferences({ binaryUnlocked: true })
+      }
+      return true
+    })
+    setSelectedLanguage('binary')
+    setShowBinaryToast(true)
+    setGlitching(true)
+  })
+
+  useEffect(() => {
+    if (!showBinaryToast) return
+    const handle = window.setTimeout(() => setShowBinaryToast(false), 4000)
+    return () => window.clearTimeout(handle)
+  }, [showBinaryToast])
+
+  useEffect(() => {
+    if (!glitching) return
+    const handle = window.setTimeout(() => setGlitching(false), 700)
+    return () => window.clearTimeout(handle)
+  }, [glitching])
+
+  const visibleLanguages = binaryUnlocked
+    ? languages
+    : languages.filter((language) => language !== 'binary')
 
   const selectedLeaderboard = leaderboardByShape[selectedRoundShape][selectedLanguage] ?? []
 
@@ -118,6 +150,7 @@ function Home() {
     }
     setHasSeenSettingsHint(preferences?.settingsHintSeen === true)
     setOnboardingOpen(preferences?.hasSeenHomeOnboarding !== true)
+    setBinaryUnlocked(preferences?.binaryUnlocked === true)
     setLocalBestScores(loadLocalBestScores())
   }, [search.language])
 
@@ -146,7 +179,21 @@ function Home() {
   }
 
   return (
-    <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10">
+    <main
+      className={`app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-10 ${
+        glitching ? 'konami-glitch' : ''
+      }`}
+    >
+      {glitching && <div className="konami-glitch-overlay" aria-hidden="true" />}
+      {showBinaryToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed left-1/2 top-6 z-50 -translate-x-1/2 pixel-border bg-[var(--color-panel)] px-4 py-3 text-sm terminal-text shadow-lg"
+        >
+          &gt; konami.unlock OK · binary snippets available
+        </div>
+      )}
       <HomeOnboarding
         open={onboardingOpen && !sessionPending}
         onDismiss={handleDismissOnboarding}
@@ -204,7 +251,7 @@ function Home() {
               <div>
                 <p className="eyebrow text-[var(--color-muted)]">language</p>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {languages.map((language) => {
+                  {visibleLanguages.map((language) => {
                     const active = language === selectedLanguage
 
                     return (
@@ -333,7 +380,7 @@ function Home() {
             </p>
 
             <div className="mt-6 grid gap-3">
-              {languages.map((language) => {
+              {visibleLanguages.map((language) => {
                 const bestScore = localBestScores[language]?.[selectedRoundShape]
 
                 return (

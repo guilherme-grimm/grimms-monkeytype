@@ -7,7 +7,6 @@ import {
   setImmersionPref,
   useImmersionPrefs,
 } from '#/lib/game/immersion-prefs'
-import { createTypingSoundPlayer, type TypingSoundPlayer } from '#/lib/game/typing-sound'
 import {
   DEFAULT_MODS,
   MOD_TOGGLE_LABELS,
@@ -17,6 +16,7 @@ import {
 } from '#/lib/game/mods'
 import { DEFAULT_ROUND_SHAPE, type RoundShape, roundShapes } from '#/lib/game/round-shape'
 import { loadStoredPreferences, saveStoredPreferences } from '#/lib/game/storage'
+import { createTypingSoundPlayer, type TypingSoundPlayer } from '#/lib/game/typing-sound'
 
 type SettingsDrawerProps = {
   open: boolean
