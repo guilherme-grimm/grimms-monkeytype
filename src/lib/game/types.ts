@@ -9,6 +9,7 @@ export const languages = [
   'php',
   'c',
   'cpp',
+  'rust',
   'holyc',
 ] as const
 
@@ -25,6 +26,7 @@ export const languageLabels: Record<LanguageId, string> = {
   php: 'PHP',
   c: 'C',
   cpp: 'C++',
+  rust: 'Rust',
   holyc: 'HolyC',
 }
 

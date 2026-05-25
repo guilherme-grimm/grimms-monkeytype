@@ -1,0 +1,52 @@
+[
+  {
+    "id": "rust-1",
+    "language": "rust",
+    "source": "fn collect_active_users(users: &[User], cutoff: SystemTime) -> Vec<String> {\n    users\n        .iter()\n        .filter(|user| user.is_online && user.last_seen_at > cutoff)\n        .map(|user| user.name.clone())\n        .collect()\n}"
+  },
+  {
+    "id": "rust-2",
+    "language": "rust",
+    "source": "fn clamp_score(score: i32, min: i32, max: i32) -> i32 {\n    if score < min {\n        min\n    } else if score > max {\n        max\n    } else {\n        score\n    }\n}"
+  },
+  {
+    "id": "rust-3",
+    "language": "rust",
+    "source": "fn build_summary(project: &Project) -> Result<String, ProjectError> {\n    if project.name.is_empty() {\n        return Err(ProjectError::MissingName);\n    }\n\n    let summary = format!(\"{}:{}\", project.name, project.branch)\n        .to_lowercase()\n        .replace(' ', \"-\");\n\n    Ok(summary)\n}"
+  },
+  {
+    "id": "rust-4",
+    "language": "rust",
+    "source": "fn top_scores(entries: &[Entry]) -> Vec<Entry> {\n    let mut ranked = entries.to_vec();\n    ranked.sort_by(|a, b| b.score.cmp(&a.score));\n    ranked.truncate(5);\n    ranked\n}"
+  },
+  {
+    "id": "rust-5",
+    "language": "rust",
+    "source": "fn group_posts_by_tag(posts: &[Post]) -> HashMap<String, Vec<String>> {\n    let mut grouped: HashMap<String, Vec<String>> = HashMap::new();\n\n    for post in posts {\n        for tag in &post.tags {\n            grouped.entry(tag.clone()).or_default().push(post.slug.clone());\n        }\n    }\n\n    grouped\n}"
+  },
+  {
+    "id": "rust-6",
+    "language": "rust",
+    "source": "fn load_config(path: &Path) -> Result<Config, ConfigError> {\n    let data = fs::read_to_string(path)\n        .map_err(|err| ConfigError::Read(path.to_path_buf(), err))?;\n\n    let config: Config = serde_json::from_str(&data)\n        .map_err(ConfigError::Parse)?;\n\n    Ok(config)\n}"
+  },
+  {
+    "id": "rust-7",
+    "language": "rust",
+    "source": "async fn fetch_with_timeout(client: &Client, url: &str) -> Result<Bytes, FetchError> {\n    let response = timeout(Duration::from_secs(5), client.get(url).send())\n        .await\n        .map_err(|_| FetchError::Timeout)?\n        .map_err(FetchError::Request)?;\n\n    response.bytes().await.map_err(FetchError::Body)\n}"
+  },
+  {
+    "id": "rust-8",
+    "language": "rust",
+    "source": "fn run_workers(jobs: Vec<Job>) -> Vec<Result<Output, JobError>> {\n    let handles: Vec<_> = jobs\n        .into_iter()\n        .map(|job| thread::spawn(move || job.execute()))\n        .collect();\n\n    handles\n        .into_iter()\n        .map(|handle| handle.join().unwrap_or(Err(JobError::Panicked)))\n        .collect()\n}"
+  },
+  {
+    "id": "rust-9",
+    "language": "rust",
+    "source": "pub struct Counter {\n    value: Mutex<i64>,\n}\n\nimpl Counter {\n    pub fn new() -> Self {\n        Self { value: Mutex::new(0) }\n    }\n\n    pub fn increment(&self) {\n        let mut guard = self.value.lock().unwrap();\n        *guard += 1;\n    }\n\n    pub fn value(&self) -> i64 {\n        *self.value.lock().unwrap()\n    }\n}"
+  },
+  {
+    "id": "rust-10",
+    "language": "rust",
+    "source": "fn unique_strings(values: &[String]) -> Vec<String> {\n    let mut seen = HashSet::with_capacity(values.len());\n    let mut unique = Vec::with_capacity(values.len());\n\n    for value in values {\n        if seen.insert(value.clone()) {\n            unique.push(value.clone());\n        }\n    }\n\n    unique\n}"
+  }
+]
